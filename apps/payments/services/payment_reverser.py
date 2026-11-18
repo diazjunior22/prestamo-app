@@ -87,3 +87,4 @@ def reverse_payment(
                 print(f"[Warning] Error updating reversed PDF receipt {payment_locked.receipt_number}: {e}")
 
         return payment_locked
+

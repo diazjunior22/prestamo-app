@@ -431,3 +431,4 @@ def generate_and_save_receipt_pdf(payment) -> str:
     file_name = f"{payment.receipt_number}.pdf"
     payment.receipt_pdf.save(file_name, ContentFile(pdf_bytes), save=True)
     return file_name
+

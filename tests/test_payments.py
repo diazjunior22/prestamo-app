@@ -289,3 +289,4 @@ class PaymentModuleTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         payment.refresh_from_db()
         self.assertTrue(payment.is_reversed)
+

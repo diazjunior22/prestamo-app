@@ -200,3 +200,4 @@ class PaymentAllocation(BaseModel):
 
     def __str__(self):
         return f"Imputación {self.payment.receipt_number} -> Cuota #{self.installment.installment_number}: ${self.total_applied:,.0f}"
+

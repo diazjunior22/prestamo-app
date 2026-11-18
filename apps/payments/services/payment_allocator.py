@@ -171,3 +171,4 @@ def allocate_payment(
                 print(f"[Warning] Error generating PDF receipt for {receipt_number}: {e}")
 
         return payment
+

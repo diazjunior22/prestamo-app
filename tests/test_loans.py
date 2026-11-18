@@ -77,8 +77,212 @@ class FinancialEngineTestCase(TestCase):
         self.assertEqual(schedule['total_interest'], Decimal('0.00'))
         self.assertEqual(schedule['total_amount'], principal)
         for item in schedule['installments']:
-            self.assertEqual(item['principal'], Decimal('100000.00'))
+            self.assertEqual(item['principal'], Decimal('1000000.00') if principal == Decimal('3000000.00') else Decimal('100000.00'))
             self.assertEqual(item['interest'], Decimal('0.00'))
+
+
+class SevenRequiredLoanScenariosTestCase(TestCase):
+    """
+    Verification of the 7 required scenarios from the prompt:
+    1. Préstamo diario de 30 cuotas
+    2. Préstamo semanal de 12 cuotas
+    3. Préstamo quincenal de 12 cuotas (estricto 15 días)
+    4. Préstamo mensual de 12 cuotas (meses calendario)
+    5. Préstamo sin intereses
+    6. Préstamo con intereses (FLAT y AMORTIZED_REDUCING)
+    7. Préstamo con ajuste de última cuota por redondeo (conservación exacta de centavos)
+    """
+
+    def test_scenario_1_daily_loan_30_installments(self):
+        """1. Préstamo diario de 30 cuotas = 30 vencimientos diarios consecutivos"""
+        principal = Decimal('1000000.00')
+        start_date = datetime.date(2027, 1, 1)
+        schedule = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=Decimal('10.00'),
+            interest_rate_period='MONTHLY',
+            interest_type='FLAT',
+            frequency='DAILY',
+            total_installments=30,
+            first_payment_date=start_date
+        )
+
+        self.assertEqual(len(schedule['installments']), 30)
+        self.assertEqual(schedule['frequency_name'], 'Diario')
+
+        # Check due dates: each day is +1 day
+        for i, inst in enumerate(schedule['installments']):
+            expected_date = start_date + datetime.timedelta(days=i)
+            self.assertEqual(inst['due_date'], expected_date)
+
+        # 10% monthly over 30 days is 10% total interest = 100,000 COP
+        self.assertEqual(schedule['total_interest'], Decimal('100000.00'))
+        self.assertEqual(schedule['total_amount'], Decimal('1100000.00'))
+
+        # Cent conservation: sum of principals == principal
+        self.assertEqual(sum(i['principal'] for i in schedule['installments']), principal)
+        self.assertEqual(sum(i['interest'] for i in schedule['installments']), Decimal('100000.00'))
+
+    def test_scenario_2_weekly_loan_12_installments(self):
+        """2. Préstamo semanal de 12 cuotas = 12 vencimientos semanales (+7 días)"""
+        principal = Decimal('1200000.00')
+        start_date = datetime.date(2027, 2, 1)
+        schedule = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=Decimal('8.00'),
+            interest_rate_period='MONTHLY',
+            interest_type='FLAT',
+            frequency='WEEKLY',
+            total_installments=12,
+            first_payment_date=start_date
+        )
+
+        self.assertEqual(len(schedule['installments']), 12)
+        self.assertEqual(schedule['frequency_name'], 'Semanal')
+
+        # Check due dates: each week is +7 days
+        for i, inst in enumerate(schedule['installments']):
+            expected_date = start_date + datetime.timedelta(days=i * 7)
+            self.assertEqual(inst['due_date'], expected_date)
+
+        # Sum of principals == principal
+        self.assertEqual(sum(i['principal'] for i in schedule['installments']), principal)
+
+    def test_scenario_3_biweekly_loan_12_installments_strictly_15_days(self):
+        """3. Préstamo quincenal de 12 cuotas = 12 vencimientos cada 15 días exactos"""
+        principal = Decimal('2400000.00')
+        start_date = datetime.date(2027, 3, 1)
+        schedule = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=Decimal('6.00'),
+            interest_rate_period='MONTHLY',
+            interest_type='FLAT',
+            frequency='BIWEEKLY',
+            total_installments=12,
+            first_payment_date=start_date
+        )
+
+        self.assertEqual(len(schedule['installments']), 12)
+        self.assertEqual(schedule['frequency_name'], 'Quincenal')
+
+        # Check due dates: strictly +15 days per installment
+        for i, inst in enumerate(schedule['installments']):
+            expected_date = start_date + datetime.timedelta(days=i * 15)
+            self.assertEqual(inst['due_date'], expected_date)
+
+        # Rate check: 6% monthly rate => 3% per 15-day quincena.
+        # 12 quincenas * 3% = 36% total interest on 2,400,000 = 864,000
+        self.assertEqual(schedule['periodic_rate_pct'], Decimal('3.00'))
+        self.assertEqual(schedule['total_interest'], Decimal('864000.00'))
+        self.assertEqual(sum(i['principal'] for i in schedule['installments']), principal)
+
+    def test_scenario_4_monthly_loan_12_installments_calendar_months(self):
+        """4. Préstamo mensual de 12 cuotas = 12 vencimientos mensuales (meses calendario)"""
+        principal = Decimal('3600000.00')
+        start_date = datetime.date(2027, 1, 15)
+        schedule = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=Decimal('4.00'),
+            interest_rate_period='MONTHLY',
+            interest_type='FLAT',
+            frequency='MONTHLY',
+            total_installments=12,
+            first_payment_date=start_date
+        )
+
+        self.assertEqual(len(schedule['installments']), 12)
+        self.assertEqual(schedule['frequency_name'], 'Mensual')
+
+        # Check calendar months progression preserving day 15
+        expected_months = [
+            (2027, 1, 15), (2027, 2, 15), (2027, 3, 15), (2027, 4, 15),
+            (2027, 5, 15), (2027, 6, 15), (2027, 7, 15), (2027, 8, 15),
+            (2027, 9, 15), (2027, 10, 15), (2027, 11, 15), (2027, 12, 15)
+        ]
+        for inst, (y, m, d) in zip(schedule['installments'], expected_months):
+            self.assertEqual(inst['due_date'], datetime.date(y, m, d))
+
+        self.assertEqual(sum(i['principal'] for i in schedule['installments']), principal)
+
+    def test_scenario_5_zero_interest(self):
+        """5. Préstamo sin intereses (NO_INTEREST): distribuye solo capital, 0 interés"""
+        principal = Decimal('750000.00')
+        schedule = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=Decimal('0.00'),
+            interest_type='NO_INTEREST',
+            frequency='BIWEEKLY',
+            total_installments=5,
+            first_payment_date=datetime.date(2027, 5, 1)
+        )
+
+        self.assertEqual(schedule['total_interest'], Decimal('0.00'))
+        self.assertEqual(schedule['total_amount'], principal)
+        for inst in schedule['installments']:
+            self.assertEqual(inst['interest'], Decimal('0.00'))
+            self.assertEqual(inst['total'], inst['principal'])
+        self.assertEqual(sum(i['principal'] for i in schedule['installments']), principal)
+
+    def test_scenario_6_with_interests_flat_and_reducing(self):
+        """6. Préstamo con intereses: FLAT vs AMORTIZED_REDUCING (amortización francesa)"""
+        principal = Decimal('10000000.00')
+        rate = Decimal('3.00') # 3% monthly
+
+        # FLAT
+        flat = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=rate,
+            interest_rate_period='MONTHLY',
+            interest_type='FLAT',
+            frequency='MONTHLY',
+            total_installments=10,
+            first_payment_date=datetime.date(2027, 1, 1)
+        )
+        # 10 months * 3% = 30% of 10,000,000 = 3,000,000 interest
+        self.assertEqual(flat['total_interest'], Decimal('3000000.00'))
+        self.assertEqual(flat['total_amount'], Decimal('13000000.00'))
+
+        # REDUCING (French amortization)
+        reducing = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=rate,
+            interest_rate_period='MONTHLY',
+            interest_type='AMORTIZED_REDUCING',
+            frequency='MONTHLY',
+            total_installments=10,
+            first_payment_date=datetime.date(2027, 1, 1)
+        )
+        # In reducing balance, total interest is strictly less than flat interest
+        self.assertLess(reducing['total_interest'], flat['total_interest'])
+        self.assertEqual(reducing['installments'][-1]['balance_after'], Decimal('0.00'))
+        self.assertEqual(sum(i['principal'] for i in reducing['installments']), principal)
+
+    def test_scenario_7_rounding_adjustment_last_installment(self):
+        """7. Préstamo con ajuste de última cuota por redondeo (conservación de centavos/pesos)"""
+        # 1,000,000 / 3 = 333,333.333333333...
+        principal = Decimal('1000000.00')
+        schedule = LoanCalculator.generate_schedule(
+            principal=principal,
+            interest_rate=Decimal('10.00'),
+            interest_rate_period='MONTHLY',
+            interest_type='FLAT',
+            frequency='MONTHLY',
+            total_installments=3,
+            first_payment_date=datetime.date(2027, 1, 1)
+        )
+
+        inst1 = schedule['installments'][0]
+        inst2 = schedule['installments'][1]
+        inst3 = schedule['installments'][2]
+
+        self.assertEqual(inst1['principal'], Decimal('333333.33'))
+        self.assertEqual(inst2['principal'], Decimal('333333.33'))
+        # Last installment must absorb the remaining 0.01 to total exactly 1,000,000.00
+        self.assertEqual(inst3['principal'], Decimal('333333.34'))
+
+        total_sum_principals = inst1['principal'] + inst2['principal'] + inst3['principal']
+        self.assertEqual(total_sum_principals, principal)
+
 
 
 class LoanCreationAndViewsTestCase(TestCase):

@@ -15,10 +15,16 @@ class Loan(BaseModel):
         AMORTIZED_REDUCING = 'AMORTIZED_REDUCING', 'Interés sobre Saldo Pendiente (Sistema Francés)'
         NO_INTEREST = 'NO_INTEREST', 'Sin Intereses (0%)'
 
+    class RatePeriod(models.TextChoices):
+        MONTHLY = 'MONTHLY', 'Mensual'
+        PER_INSTALLMENT = 'PER_INSTALLMENT', 'Por Cuota / Periódica'
+        ANNUAL = 'ANNUAL', 'Anual'
+        DAILY = 'DAILY', 'Diaria'
+
     class PaymentFrequency(models.TextChoices):
         DAILY = 'DAILY', 'Diario'
         WEEKLY = 'WEEKLY', 'Semanal'
-        BIWEEKLY = 'BIWEEKLY', 'Quincenal'
+        BIWEEKLY = 'BIWEEKLY', 'Quincenal (cada 15 días)'
         MONTHLY = 'MONTHLY', 'Mensual'
 
     class Status(models.TextChoices):
@@ -50,6 +56,12 @@ class Loan(BaseModel):
         decimal_places=2,
         verbose_name="Tasa de interés (%)"
     )
+    interest_rate_period = models.CharField(
+        max_length=20,
+        choices=RatePeriod.choices,
+        default=RatePeriod.MONTHLY,
+        verbose_name="Período de la tasa"
+    )
     interest_type = models.CharField(
         max_length=25,
         choices=InterestType.choices,
@@ -63,7 +75,7 @@ class Loan(BaseModel):
         verbose_name="Frecuencia de pago"
     )
     total_installments = models.PositiveIntegerField(
-        verbose_name="Número de cuotas"
+        verbose_name="Cantidad de cuotas"
     )
     disbursement_date = models.DateField(
         verbose_name="Fecha de desembolso"

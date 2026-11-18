@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 from apps.customers.models import Customer
 from apps.loans.models import Loan, Installment
-from apps.cashflow.models import CashMovement
+from apps.cashflow.models import CashAccount, CashMovement
 from .loan_calculator import LoanCalculator
 
 class LoanCreator:
@@ -13,7 +13,7 @@ class LoanCreator:
     Executes in a single database transaction:
     1. Generates unique loan code.
     2. Calculates verified amortization schedule.
-    3. Persists Loan record.
+    3. Persists Loan record with original configuration terms.
     4. Generates all Installment records.
     5. Registers CashMovement outflow (LOAN_DISBURSEMENT).
     """
@@ -40,6 +40,7 @@ class LoanCreator:
         total_installments: int,
         disbursement_date,
         first_payment_date,
+        interest_rate_period: str = 'MONTHLY',
         notes: str = "",
         user=None
     ) -> Loan:
@@ -52,7 +53,8 @@ class LoanCreator:
             interest_type=interest_type,
             frequency=payment_frequency,
             total_installments=total_installments,
-            first_payment_date=first_payment_date
+            first_payment_date=first_payment_date,
+            interest_rate_period=interest_rate_period
         )
 
         with transaction.atomic():
@@ -63,6 +65,7 @@ class LoanCreator:
                 loan_code=loan_code,
                 principal=schedule['principal'],
                 interest_rate=schedule['interest_rate'],
+                interest_rate_period=schedule['interest_rate_period'],
                 interest_type=schedule['interest_type'],
                 payment_frequency=schedule['frequency'],
                 total_installments=schedule['total_installments'],
@@ -97,8 +100,10 @@ class LoanCreator:
 
             Installment.objects.bulk_create(installments_to_create)
 
-            # Record Cash Outflow (Loan Disbursement)
+            # Record Cash Outflow (Loan Disbursement from default cash account)
+            disbursement_account = CashAccount.get_default_account()
             CashMovement.objects.create(
+                account=disbursement_account,
                 movement_type=CashMovement.MovementType.LOAN_DISBURSEMENT,
                 amount=schedule['principal'],
                 movement_date=disbursement_date,
@@ -108,4 +113,3 @@ class LoanCreator:
             )
 
             return loan
-

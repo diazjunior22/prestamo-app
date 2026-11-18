@@ -272,3 +272,4 @@ class CashFilterForm(forms.Form):
         CashAccount.ensure_default_accounts()
         self.fields['account'].queryset = CashAccount.objects.filter(is_active=True).order_by('name')
         self.fields['account'].empty_label = 'Todas las cuentas / bolsillos'
+

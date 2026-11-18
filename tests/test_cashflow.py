@@ -149,3 +149,4 @@ class CashflowTestCase(TestCase):
         response = self.client.post(reverse('cashflow:reconciliation'), data=rec_data)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(CashReconciliation.objects.count(), 1)
+

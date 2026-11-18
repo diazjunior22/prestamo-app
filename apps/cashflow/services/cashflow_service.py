@@ -169,3 +169,4 @@ class CashflowService:
             'accounts': account_cards,
             'total_consolidated': total_consolidated,
         }
+

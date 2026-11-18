@@ -77,6 +77,7 @@ def loan_create_view(request):
                     customer=form.cleaned_data['customer'],
                     principal=form.cleaned_data['principal'],
                     interest_rate=form.cleaned_data['interest_rate'],
+                    interest_rate_period=form.cleaned_data.get('interest_rate_period', 'MONTHLY'),
                     interest_type=form.cleaned_data['interest_type'],
                     payment_frequency=form.cleaned_data['payment_frequency'],
                     total_installments=form.cleaned_data['total_installments'],
@@ -105,19 +106,31 @@ def loan_create_view(request):
 def loan_simulate_view(request):
     """
     HTMX endpoint calculating and returning the real-time amortization schedule preview.
+    Dynamically recalculates on any parameter change: principal, rate, rate period,
+    frequency, installments count, or first payment date.
     """
     try:
         principal = Decimal(request.GET.get('principal', '1000000'))
         interest_rate = Decimal(request.GET.get('interest_rate', '5.0'))
+        interest_rate_period = request.GET.get('interest_rate_period', 'MONTHLY')
         interest_type = request.GET.get('interest_type', 'FLAT')
-        frequency = request.GET.get('payment_frequency', 'MONTHLY')
-        total_installments = int(request.GET.get('total_installments', '6'))
+        frequency = request.GET.get('payment_frequency', 'BIWEEKLY')
+        total_installments = int(request.GET.get('total_installments', '12'))
         first_date_str = request.GET.get('first_payment_date')
         
         if first_date_str:
             first_payment_date = datetime.datetime.strptime(first_date_str, '%Y-%m-%d').date()
         else:
-            first_payment_date = timezone.localdate() + datetime.timedelta(days=30)
+            # Default first payment date depending on frequency
+            today = timezone.localdate()
+            if frequency == 'DAILY':
+                first_payment_date = today + datetime.timedelta(days=1)
+            elif frequency == 'WEEKLY':
+                first_payment_date = today + datetime.timedelta(days=7)
+            elif frequency == 'BIWEEKLY':
+                first_payment_date = today + datetime.timedelta(days=15)
+            else:
+                first_payment_date = today + datetime.timedelta(days=30)
 
         schedule = LoanCalculator.generate_schedule(
             principal=principal,
@@ -125,7 +138,8 @@ def loan_simulate_view(request):
             interest_type=interest_type,
             frequency=frequency,
             total_installments=total_installments,
-            first_payment_date=first_payment_date
+            first_payment_date=first_payment_date,
+            interest_rate_period=interest_rate_period
         )
         return render(request, 'loans/partials/simulator_preview.html', {'schedule': schedule, 'error': None})
     except Exception as e:

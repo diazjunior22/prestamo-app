@@ -104,6 +104,7 @@ class CashMovement(BaseModel):
                 cls.MovementType.LOAN_DISBURSEMENT,
                 cls.MovementType.EXPENSE,
                 cls.MovementType.WITHDRAWAL,
+                cls.MovementType.REVERSAL,
             ],
             is_active=True
         ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')

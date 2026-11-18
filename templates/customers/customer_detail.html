@@ -241,7 +241,7 @@
                             </span>
                         </td>
                         <td class="py-3 px-4 text-right">
-                            <a href="#" class="text-blue-600 hover:underline font-semibold">Ver detalle</a>
+                            <a href="{% url 'loans:detail' loan.pk %}" class="text-blue-600 hover:underline font-semibold">Ver detalle</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -265,6 +265,65 @@
         </div>
         {% endif %}
     </div>
+
+    <!-- Recent Payments History Card -->
+    {% if payments %}
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="receipt" class="w-4 h-4 text-emerald-600"></i>
+                <span>Últimos Abonos y Recaudos Realizados</span>
+            </h3>
+            <span class="text-xs text-slate-400">Total registrados: {{ payments.count }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                    <tr>
+                        <th class="py-2.5 px-4">Recibo N°</th>
+                        <th class="py-2.5 px-4">Fecha</th>
+                        <th class="py-2.5 px-4">Préstamo</th>
+                        <th class="py-2.5 px-4">Método</th>
+                        <th class="py-2.5 px-4 text-right">Monto</th>
+                        <th class="py-2.5 px-4 text-center">Estado</th>
+                        <th class="py-2.5 px-4 text-right">Comprobante</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for p in payments %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="py-3 px-4 font-bold">
+                            <a href="{% url 'payments:detail' p.id %}" class="text-primary-600 hover:text-primary-800 transition">
+                                {{ p.receipt_number }}
+                            </a>
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">{{ p.payment_date|date:"d/m/Y" }}</td>
+                        <td class="py-3 px-4 font-medium">{{ p.loan.loan_code }}</td>
+                        <td class="py-3 px-4">{{ p.get_payment_method_display }}</td>
+                        <td class="py-3 px-4 text-right font-bold {% if p.is_reversed %}line-through text-slate-400{% else %}text-emerald-600{% endif %}">
+                            $ {{ p.amount|floatformat:0 }} COP
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if p.is_reversed %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-danger-50 text-danger-700">Reversado</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700">Completado</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <a href="{% url 'payments:receipt_pdf' p.id %}" target="_blank"
+                                class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-primary-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                <span>PDF</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 {% endblock %}

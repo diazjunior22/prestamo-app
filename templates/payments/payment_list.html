@@ -5,12 +5,13 @@
 
 {% block content %}
 <div class="space-y-6">
+    <!-- Header with Action Button -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div>
-            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Historial de Pagos y Abonos</h1>
-            <p class="text-xs text-slate-400 mt-0.5">Control de ingresos, comprobantes digitales, distribución y reversiones</p>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Historial de Recaudos y Pagos</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Control de ingresos, comprobantes digitales, distribución en cuotas y reversiones</p>
         </div>
-        <div>
+        <div class="flex items-center gap-2">
             <a href="{% url 'payments:create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition">
                 <i data-lucide="hand-coins" class="w-4 h-4"></i>
                 <span>Registrar Pago</span>
@@ -18,15 +19,98 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs">
-        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
-            <i data-lucide="credit-card" class="w-6 h-6"></i>
+    <!-- 4 Financial KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Recaudado este mes -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <i data-lucide="calendar-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Recaudado este mes</p>
+                <h3 class="text-base font-extrabold text-slate-900 mt-0.5">$ {{ total_month|floatformat:0 }}</h3>
+                <span class="text-[10px] text-slate-400">Total en el mes actual</span>
+            </div>
         </div>
-        <h3 class="text-sm font-bold text-slate-900">Módulo de Pagos Preparado</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
-            En la <strong>Fase 5</strong> implementaremos el registro de abonos (efectivo, Nequi, Bancolombia), desglose automático en cuotas, generación de comprobantes PDF y reversión contable auditada.
-        </p>
+
+        <!-- Recaudado hoy -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <i data-lucide="badge-dollar-sign" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Recaudado hoy</p>
+                <h3 class="text-base font-extrabold text-slate-900 mt-0.5">$ {{ total_today|floatformat:0 }}</h3>
+                <span class="text-[10px] text-slate-400">Ingresos del día</span>
+            </div>
+        </div>
+
+        <!-- Recibos Completados -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <i data-lucide="receipt" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Recibos Emitidos</p>
+                <h3 class="text-base font-extrabold text-slate-900 mt-0.5">{{ total_receipts_count }}</h3>
+                <span class="text-[10px] text-slate-400">Pagos completados</span>
+            </div>
+        </div>
+
+        <!-- Reversiones -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Reversados</p>
+                <h3 class="text-base font-extrabold text-slate-900 mt-0.5">{{ reversed_count }}</h3>
+                <span class="text-[10px] text-slate-400">Anulaciones auditadas</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar Card -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <form method="get" action="{% url 'payments:list' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <!-- Search input -->
+            <div class="lg:col-span-2 relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </span>
+                {{ filter_form.search }}
+            </div>
+
+            <!-- Payment Method -->
+            <div>
+                {{ filter_form.payment_method }}
+            </div>
+
+            <!-- Status -->
+            <div>
+                {{ filter_form.status }}
+            </div>
+
+            <!-- Date From -->
+            <div>
+                {{ filter_form.date_from }}
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center gap-2">
+                <button type="submit" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition">
+                    Filtrar
+                </button>
+                <a href="{% url 'payments:list' %}" class="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition" title="Limpiar Filtros">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Payments Table Container -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        {% include 'payments/partials/payment_table.html' %}
     </div>
 </div>
 {% endblock %}
-

@@ -199,6 +199,73 @@
         </div>
     </div>
 
+    <!-- Historial de Pagos y Abonos -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="p-5 border-b border-slate-200/80 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="receipt" class="w-4 h-4 text-emerald-600"></i>
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Historial de Recaudos y Abonos</h3>
+            </div>
+            {% if loan.status != 'PAID' %}
+            <a href="{% url 'payments:create' %}?loan={{ loan.id }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Nuevo Abono</span>
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200/80 bg-slate-50/75 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                        <th class="py-2.5 px-4">N° Recibo</th>
+                        <th class="py-2.5 px-4">Fecha</th>
+                        <th class="py-2.5 px-4">Método</th>
+                        <th class="py-2.5 px-4 text-right">Monto Pagado</th>
+                        <th class="py-2.5 px-4 text-center">Estado</th>
+                        <th class="py-2.5 px-4 text-right">Comprobante</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for p in payments %}
+                    <tr class="hover:bg-slate-50/60 transition">
+                        <td class="py-3 px-4 font-bold">
+                            <a href="{% url 'payments:detail' p.id %}" class="text-primary-600 hover:text-primary-800 transition">
+                                {{ p.receipt_number }}
+                            </a>
+                        </td>
+                        <td class="py-3 px-4 text-slate-600">{{ p.payment_date|date:"d/m/Y" }}</td>
+                        <td class="py-3 px-4">{{ p.get_payment_method_display }}</td>
+                        <td class="py-3 px-4 text-right font-bold {% if p.is_reversed %}line-through text-slate-400{% else %}text-emerald-600{% endif %}">
+                            $ {{ p.amount|floatformat:0 }} COP
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if p.is_reversed %}
+                                <span class="px-2 py-0.5 rounded-full bg-danger-50 text-danger-700 text-[10px] font-bold">Reversado</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">Completado</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <a href="{% url 'payments:receipt_pdf' p.id %}" target="_blank"
+                                class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-primary-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                <span>PDF</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-6 text-center text-slate-400 text-xs">
+                            No se registran abonos en este crédito todavía.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Contract Notes -->
     {% if loan.notes %}
     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">

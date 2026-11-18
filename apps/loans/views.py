@@ -141,10 +141,12 @@ def loan_detail_view(request, pk):
     """
     loan = get_object_or_404(Loan.objects.select_related('customer'), pk=pk)
     installments = loan.installments.all().order_by('installment_number')
+    payments = loan.payments.select_related('created_by').order_by('-payment_date', '-created_at')
 
     return render(request, 'loans/loan_detail.html', {
         'loan': loan,
         'installments': installments,
+        'payments': payments,
         'page_title': f"Préstamo {loan.loan_code}",
         'active_nav': 'loans',
     })

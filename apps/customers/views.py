@@ -96,14 +96,16 @@ def customer_detail_view(request, pk):
     """
     customer = get_object_or_404(Customer, pk=pk)
 
-    # In future phases, loans will be listed here
+    # Loans and recent payments for this customer
     loans = customer.loans.all().order_by('-created_at') if hasattr(customer, 'loans') else []
+    payments = customer.payments.select_related('loan').order_by('-payment_date', '-created_at')[:10] if hasattr(customer, 'payments') else []
 
     context = {
         'page_title': customer.full_name,
         'active_nav': 'customers',
         'customer': customer,
         'loans': loans,
+        'payments': payments,
     }
     return render(request, 'customers/customer_detail.html', context)
 

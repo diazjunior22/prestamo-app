@@ -63,7 +63,6 @@ class EmailNotificationService:
         system_name = getattr(settings, 'SYSTEM_NAME', 'LoanManager')
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', f"{system_name} <notificaciones@loanmanager.local>")
 
-        # Inject common context
         context.setdefault('system_name', system_name)
         context.setdefault('from_email', from_email)
         context.setdefault('to_email', to_email)
@@ -154,7 +153,6 @@ class EmailNotificationService:
         to_email = recipient_email or getattr(customer, 'email', None)
 
         if not to_email:
-            # Fallback to admin if customer has no email configured
             to_email = getattr(settings, 'ADMIN_EMAIL', '')
 
         if not to_email:
@@ -207,7 +205,6 @@ class EmailNotificationService:
         }
         subject = f"Comprobante de Pago Recibo {payment.receipt_number}"
 
-        # Try to generate/attach PDF receipt
         attachments = []
         try:
             from apps.payments.services.receipt_generator import build_receipt_pdf_bytes
@@ -230,9 +227,19 @@ class EmailNotificationService:
         )
 
     @classmethod
-    def send_installment_reminder_email(cls, installment, recipient_email: str = None) -> tuple[bool, str]:
+    def send_installment_reminder_email(
+        cls,
+        installment,
+        timing: str = 'AUTO',
+        recipient_email: str = None
+    ) -> tuple[bool, str]:
         """
-        Sends reminder for an upcoming or overdue installment.
+        Sends installment reminder/alert.
+        Supports:
+        - 'EVE': 1 día antes del vencimiento (Recordatorio preventivo: Mañana vence tu cuota).
+        - 'TODAY': Mismo día del vencimiento (Alerta de cobro: Hoy vence tu cuota).
+        - 'OVERDUE': En mora (Alerta de cuota vencida).
+        - 'AUTO': Automatically resolves based on comparison with today's date.
         """
         customer = installment.customer
         loan = installment.loan
@@ -242,17 +249,36 @@ class EmailNotificationService:
             return False, f"El cliente {customer.full_name} no tiene correo registrado."
 
         today = timezone.localdate()
-        is_overdue = installment.due_date < today
+        diff_days = (installment.due_date - today).days
+
+        if timing == 'AUTO':
+            if diff_days == 1:
+                timing = 'EVE'
+            elif diff_days == 0:
+                timing = 'TODAY'
+            elif diff_days < 0:
+                timing = 'OVERDUE'
+            else:
+                timing = 'UPCOMING'
+
+        is_overdue = timing == 'OVERDUE' or diff_days < 0
 
         context = {
             'installment': installment,
             'loan': loan,
             'customer': customer,
+            'timing': timing,
             'is_overdue': is_overdue,
         }
 
-        if is_overdue:
-            subject = f"Aviso de Cuota Vencida #{installment.installment_number} — Préstamo {loan.loan_code}"
+        if timing == 'EVE':
+            subject = f"Recordatorio: Mañana vence tu cuota #{installment.installment_number} — Préstamo {loan.loan_code}"
+            notif_type = NotificationLog.NotificationType.DUE_REMINDER
+        elif timing == 'TODAY':
+            subject = f"Alerta de Cobro: Hoy vence tu cuota #{installment.installment_number} — Préstamo {loan.loan_code}"
+            notif_type = NotificationLog.NotificationType.DUE_TODAY
+        elif is_overdue:
+            subject = f"Aviso de Mora: Cuota #{installment.installment_number} vencida — Préstamo {loan.loan_code}"
             notif_type = NotificationLog.NotificationType.OVERDUE_ALERT
         else:
             subject = f"Recordatorio de Vencimiento Cuota #{installment.installment_number} — {loan.loan_code}"
@@ -270,28 +296,122 @@ class EmailNotificationService:
         )
 
     @classmethod
+    def dispatch_automatic_reminders(cls, check_duplicates: bool = True) -> dict:
+        """
+        Runs the daily automated reminder cycle:
+        1. Finds all installments due TOMORROW (1 día antes) and sends 'Recordatorio Preventivo' (EVE).
+        2. Finds all installments due TODAY (mismo día) and sends 'Alerta de Pago' (TODAY).
+        Avoids spamming duplicates if an alert was already successfully dispatched today.
+        """
+        today = timezone.localdate()
+        tomorrow = today + timezone.timedelta(days=1)
+
+        from apps.loans.models import Installment
+
+        results = {
+            'eve_sent': 0,
+            'today_sent': 0,
+            'skipped_no_email': 0,
+            'skipped_duplicate': 0,
+            'failed': 0,
+        }
+
+        # 1. Cuotas que vencen MAÑANA (un día antes)
+        tomorrow_installments = Installment.objects.filter(
+            due_date=tomorrow,
+            status__in=[Installment.Status.PENDING, Installment.Status.PARTIAL]
+        ).select_related('customer', 'loan')
+
+        for inst in tomorrow_installments:
+            if not inst.customer.email:
+                results['skipped_no_email'] += 1
+                continue
+
+            if check_duplicates:
+                already_sent = NotificationLog.objects.filter(
+                    recipient_email=inst.customer.email,
+                    loan_reference=inst.loan.loan_code,
+                    notification_type=NotificationLog.NotificationType.DUE_REMINDER,
+                    status=NotificationLog.Status.SENT,
+                    created_at__date=today
+                ).exists()
+                if already_sent:
+                    results['skipped_duplicate'] += 1
+                    continue
+
+            success, _ = cls.send_installment_reminder_email(inst, timing='EVE')
+            if success:
+                results['eve_sent'] += 1
+            else:
+                results['failed'] += 1
+
+        # 2. Cuotas que vencen HOY (mismo día)
+        today_installments = Installment.objects.filter(
+            due_date=today,
+            status__in=[Installment.Status.PENDING, Installment.Status.PARTIAL]
+        ).select_related('customer', 'loan')
+
+        for inst in today_installments:
+            if not inst.customer.email:
+                results['skipped_no_email'] += 1
+                continue
+
+            if check_duplicates:
+                already_sent = NotificationLog.objects.filter(
+                    recipient_email=inst.customer.email,
+                    loan_reference=inst.loan.loan_code,
+                    notification_type=NotificationLog.NotificationType.DUE_TODAY,
+                    status=NotificationLog.Status.SENT,
+                    created_at__date=today
+                ).exists()
+                if already_sent:
+                    results['skipped_duplicate'] += 1
+                    continue
+
+            success, _ = cls.send_installment_reminder_email(inst, timing='TODAY')
+            if success:
+                results['today_sent'] += 1
+            else:
+                results['failed'] += 1
+
+        return results
+
+    @classmethod
     def send_daily_digest_email(cls, admin_email: str = None) -> tuple[bool, str]:
         """
         Generates and sends the daily operations report to the administrator:
-        today's collections, overdue quotas, and pocket liquid balances.
+        - Cuotas que vencen HOY.
+        - Cuotas que vencen MAÑANA (un día antes).
+        - Cuotas en mora.
+        - Saldos disponibles en cada bolsillo (Caja, Nequi, Nu, Bancos).
         """
         to_email = admin_email or getattr(settings, 'ADMIN_EMAIL', 'admin@loanmanager.local')
         if not to_email:
             return False, "No se ha configurado un correo de administrador."
 
         today = timezone.localdate()
+        tomorrow = today + timezone.timedelta(days=1)
 
         from apps.loans.models import Loan, Installment
         from apps.cashflow.models import CashAccount, CashMovement
 
-        # Installments due today
+        # Installments due TODAY
         today_installments = Installment.objects.filter(
             due_date=today,
             status__in=['PENDING', 'PARTIAL']
-        ).select_related('customer', 'loan')
+        ).select_related('customer', 'loan').order_by('customer__last_name')
 
         today_due_count = today_installments.count()
         today_due_amount = sum((i.balance for i in today_installments), Decimal('0.00'))
+
+        # Installments due TOMORROW (1 día antes)
+        tomorrow_installments = Installment.objects.filter(
+            due_date=tomorrow,
+            status__in=['PENDING', 'PARTIAL']
+        ).select_related('customer', 'loan').order_by('customer__last_name')
+
+        tomorrow_due_count = tomorrow_installments.count()
+        tomorrow_due_amount = sum((i.balance for i in tomorrow_installments), Decimal('0.00'))
 
         # Overdue installments
         overdue_installments = Installment.objects.filter(
@@ -320,17 +440,20 @@ class EmailNotificationService:
             'report_date': today,
             'today_due_count': today_due_count,
             'today_due_amount': today_due_amount,
+            'tomorrow_due_count': tomorrow_due_count,
+            'tomorrow_due_amount': tomorrow_due_amount,
             'overdue_count': overdue_count,
             'overdue_amount': overdue_amount,
             'active_loans_count': active_loans_count,
             'total_outstanding_balance': total_outstanding_balance,
             'accounts': accounts_data,
             'total_cash': total_cash,
-            'today_installments': today_installments[:20],
+            'today_installments': today_installments[:25],
+            'tomorrow_installments': tomorrow_installments[:25],
             'site_url': 'http://localhost:8000',
         }
 
-        subject = f"Reporte Matutino de Cobranza — {today.strftime('%d/%m/%Y')}"
+        subject = f"Reporte de Cobranza (Hoy: {today_due_count} cuotas | Mañana: {tomorrow_due_count} cuotas) — {today.strftime('%d/%m/%Y')}"
 
         return cls._send_email_message(
             subject=subject,
@@ -340,4 +463,3 @@ class EmailNotificationService:
             recipient_name="Administrador",
             notification_type=NotificationLog.NotificationType.DAILY_DIGEST
         )
-

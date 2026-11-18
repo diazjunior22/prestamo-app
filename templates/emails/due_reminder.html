@@ -1,53 +1,86 @@
 {% extends 'emails/base_email.html' %}
 
-{% block title %}Recordatorio de Cuota #{{ installment.installment_number }} — {{ system_name }}{% endblock %}
+{% block title %}
+    {% if timing == 'EVE' %}
+        Recordatorio: Mañana vence tu cuota #{{ installment.installment_number }} — {{ system_name }}
+    {% elif timing == 'TODAY' %}
+        Alerta: Hoy vence tu cuota #{{ installment.installment_number }} — {{ system_name }}
+    {% elif is_overdue %}
+        Alerta de Mora: Cuota #{{ installment.installment_number }} vencida — {{ system_name }}
+    {% else %}
+        Recordatorio de Cuota #{{ installment.installment_number }} — {{ system_name }}
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div style="text-align: center; margin-bottom: 20px;">
-    {% if is_overdue %}
-        <span class="badge badge-danger">⚠ Cuota en Mora / Vencida</span>
-        <h2 style="font-size: 18px; font-weight: 800; color: #b91c1c; margin: 10px 0 4px;">Aviso de Cuota Vencida</h2>
+    {% if timing == 'EVE' %}
+        <span class="badge badge-warning" style="background-color: #fef3c7; color: #92400e;">⏰ Recordatorio Preventivo — Vence Mañana</span>
+        <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin: 10px 0 4px;">Tu cuota vence mañana</h2>
+        <p style="font-size: 12px; color: #64748b; margin: 0;">Fecha límite: <strong>Mañana {{ installment.due_date|date:"d/m/Y" }}</strong></p>
+    {% elif timing == 'TODAY' %}
+        <span class="badge badge-info" style="background-color: #dbeafe; color: #1e40af;">🔔 Alerta de Cobro — Vence Hoy</span>
+        <h2 style="font-size: 19px; font-weight: 800; color: #1e3a8a; margin: 10px 0 4px;">Hoy es tu fecha límite de pago</h2>
+        <p style="font-size: 12px; color: #64748b; margin: 0;">Fecha límite: <strong>Hoy {{ installment.due_date|date:"d/m/Y" }}</strong></p>
+    {% elif is_overdue %}
+        <span class="badge badge-danger">⚠ Alerta de Cuota Vencida en Mora</span>
+        <h2 style="font-size: 19px; font-weight: 800; color: #b91c1c; margin: 10px 0 4px;">Cuota en estado de mora</h2>
+        <p style="font-size: 12px; color: #b91c1c; margin: 0;">Venció el: <strong>{{ installment.due_date|date:"d/m/Y" }}</strong></p>
     {% else %}
-        <span class="badge badge-warning">⏰ Próximo Vencimiento</span>
-        <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 10px 0 4px;">Recordatorio Amistoso de Pago</h2>
+        <span class="badge badge-info">Recordatorio de Cuota</span>
+        <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin: 10px 0 4px;">Próximo vencimiento programado</h2>
     {% endif %}
-    <p style="font-size: 13px; color: #64748b; margin: 0;">Préstamo: <strong style="color: #2563eb;">{{ loan.loan_code }}</strong></p>
+    <p style="font-size: 12px; color: #64748b; margin-top: 6px;">Préstamo: <strong style="color: #2563eb;">{{ loan.loan_code }}</strong></p>
 </div>
 
 <p style="font-size: 13px; line-height: 1.6; margin: 0 0 16px;">
-    Hola <strong>{{ customer.full_name }}</strong>, te recordamos que tienes una cuota pendiente de pago con las siguientes condiciones:
+    Hola <strong>{{ customer.full_name }}</strong>,
+    {% if timing == 'EVE' %}
+        te enviamos este aviso un día antes para que puedas programar tu pago oportunamente y mantener tu crédito al día.
+    {% elif timing == 'TODAY' %}
+        te recordamos que el día de hoy vence tu cuota de pago. Agradecemos realizar tu abono durante el transcurso del día.
+    {% elif is_overdue %}
+        te informamos que tu cuota presenta días de retraso. Es prioritario regularizar tu saldo para evitar mayores intereses o reportes.
+    {% else %}
+        te compartimos la información de tu próxima cuota programada:
+    {% endif %}
 </p>
 
-<div class="card" style="text-align: center;">
-    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b;">Valor de la Cuota</div>
-    <div class="amount-highlight" style="color: {% if is_overdue %}#b91c1c{% else %}#0f172a{% endif %};">$ {{ installment.balance|floatformat:0 }} COP</div>
-    <div style="font-size: 11px; color: #64748b;">Cuota <strong>#{{ installment.installment_number }}</strong> de {{ loan.total_installments }}</div>
+<div class="card" style="text-align: center; border-left: 4px solid {% if timing == 'EVE' %}#d97706{% elif timing == 'TODAY' %}#2563eb{% elif is_overdue %}#dc2626{% else %}#059669{% endif %};">
+    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b;">Monto a Pagar</div>
+    <div class="amount-highlight" style="color: {% if is_overdue %}#b91c1c{% elif timing == 'TODAY' %}#1e3a8a{% else %}#0f172a{% endif %};">$ {{ installment.balance|floatformat:0 }} COP</div>
+    <div style="font-size: 11px; color: #64748b;">Cuota <strong>#{{ installment.installment_number }}</strong> de {{ loan.total_installments }} • Frecuencia: <strong>{{ loan.get_payment_frequency_display }}</strong></div>
 </div>
 
 <table class="data-table">
     <tr>
         <td style="color: #64748b; width: 45%;">Fecha de Vencimiento:</td>
-        <td style="font-weight: 700; color: {% if is_overdue %}#b91c1c{% else %}#2563eb{% endif %};">
+        <td style="font-weight: 700; color: {% if is_overdue %}#b91c1c{% elif timing == 'TODAY' %}#1e40af{% else %}#0f172a{% endif %};">
             {{ installment.due_date|date:"d/m/Y" }}
-            {% if is_overdue %} (Vencida) {% endif %}
+            {% if timing == 'EVE' %}<span style="color: #b45309; font-size: 11px;">(Mañana)</span>
+            {% elif timing == 'TODAY' %}<span style="color: #1d4ed8; font-size: 11px;">(Hoy)</span>
+            {% elif is_overdue %}<span style="color: #dc2626; font-size: 11px;">(Vencida)</span>{% endif %}
         </td>
     </tr>
     <tr>
-        <td style="color: #64748b;">Capital de la Cuota:</td>
+        <td style="color: #64748b;">Abono a Capital:</td>
         <td style="font-weight: 700; color: #1e293b;">$ {{ installment.principal_amount|floatformat:0 }} COP</td>
     </tr>
     <tr>
-        <td style="color: #64748b;">Interés de la Cuota:</td>
+        <td style="color: #64748b;">Interés correspondiente:</td>
         <td style="font-weight: 700; color: #1e293b;">$ {{ installment.interest_amount|floatformat:0 }} COP</td>
     </tr>
     <tr>
-        <td style="color: #64748b;">Saldo Total del Préstamo:</td>
+        <td style="color: #64748b;">Saldo Total Restante del Préstamo:</td>
         <td style="font-weight: 700; color: #1e293b;">$ {{ loan.balance|floatformat:0 }} COP</td>
     </tr>
 </table>
 
-<div style="margin-top: 24px; padding: 14px; background-color: #f8fafc; border-radius: 10px; font-size: 12px; color: #475569; line-height: 1.5; border: 1px solid #e2e8f0;">
-    <strong>Medios de pago disponibles:</strong> Puedes realizar tu abono en Efectivo, por <strong>Nequi</strong>, <strong>Cuenta Nu</strong> o transferencia bancaria. Una vez realices tu pago, envíanos el soporte para emitir tu recibo al instante.
+<div style="margin-top: 24px; padding: 14px; background-color: #f8fafc; border-radius: 10px; font-size: 12px; color: #475569; line-height: 1.6; border: 1px solid #e2e8f0;">
+    <strong>Medios de pago disponibles:</strong><br>
+    • <strong>Efectivo</strong> en mano con tu asesor.<br>
+    • <strong>Nequi</strong> / <strong>Daviplata</strong> al número de cuenta asignado.<br>
+    • <strong>Cuenta Nu</strong> o transferencia bancaria.<br>
+    <span style="font-size: 11px; color: #64748b; display: block; margin-top: 4px;">Una vez realizado tu pago, envíanos el comprobante para emitir tu recibo digital oficial al instante.</span>
 </div>
 {% endblock %}
-

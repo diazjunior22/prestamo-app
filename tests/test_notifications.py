@@ -117,20 +117,60 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(log.notification_type, NotificationLog.NotificationType.PAYMENT_RECEIPT)
 
     def test_send_installment_reminder_email(self):
-        """Installment reminder notifies customer about due or overdue quota."""
-        inst = self.loan.installments.first()
-        success, msg = EmailNotificationService.send_installment_reminder_email(inst)
-        self.assertTrue(success)
+        """Installment reminder notifies customer: 1 day before (EVE) and on due date (TODAY)."""
+        today = timezone.localdate()
+        tomorrow = today + timezone.timedelta(days=1)
 
+        inst1 = self.loan.installments.first()
+        inst1.due_date = tomorrow
+        inst1.save()
+
+        # 1. Test 1 day before (EVE)
+        success, msg = EmailNotificationService.send_installment_reminder_email(inst1, timing='EVE')
+        self.assertTrue(success)
         latest_mail = mail.outbox[-1]
-        self.assertIn(f"Cuota #{inst.installment_number}", latest_mail.subject)
+        self.assertIn("Mañana vence", latest_mail.subject)
+        log1 = NotificationLog.objects.filter(recipient_email=self.customer.email, notification_type=NotificationLog.NotificationType.DUE_REMINDER).first()
+        self.assertIsNotNone(log1)
+
+        # 2. Test same day (TODAY)
+        inst1.due_date = today
+        inst1.save()
+        success, msg = EmailNotificationService.send_installment_reminder_email(inst1, timing='TODAY')
+        self.assertTrue(success)
+        latest_mail = mail.outbox[-1]
+        self.assertIn("Hoy vence", latest_mail.subject)
+        log2 = NotificationLog.objects.filter(recipient_email=self.customer.email, notification_type=NotificationLog.NotificationType.DUE_TODAY).first()
+        self.assertIsNotNone(log2)
+
+    def test_dispatch_automatic_reminders_and_deduplication(self):
+        """Automatic reminder dispatch handles both today and tomorrow with duplicate protection."""
+        today = timezone.localdate()
+        tomorrow = today + timezone.timedelta(days=1)
+
+        installments = list(self.loan.installments.all())
+        installments[0].due_date = today
+        installments[0].save()
+        installments[1].due_date = tomorrow
+        installments[1].save()
+
+        # First run: should dispatch 1 today and 1 eve
+        results = EmailNotificationService.dispatch_automatic_reminders(check_duplicates=True)
+        self.assertEqual(results['today_sent'], 1)
+        self.assertEqual(results['eve_sent'], 1)
+
+        # Second run: duplicate protection skips them
+        results2 = EmailNotificationService.dispatch_automatic_reminders(check_duplicates=True)
+        self.assertEqual(results2['today_sent'], 0)
+        self.assertEqual(results2['eve_sent'], 0)
+        self.assertEqual(results2['skipped_duplicate'], 2)
 
     def test_send_daily_digest_email(self):
-        """Daily operations digest generates summary for admin."""
+        """Daily operations digest generates summary for admin including today and tomorrow."""
         success, msg = EmailNotificationService.send_daily_digest_email('admin_digest@test.local')
         self.assertTrue(success)
         latest_mail = mail.outbox[-1]
-        self.assertIn("Reporte Matutino de Cobranza", latest_mail.subject)
+        self.assertIn("Reporte de Cobranza", latest_mail.subject)
         self.assertEqual(latest_mail.to, ['admin_digest@test.local'])
 
     def test_notifications_views_flow(self):

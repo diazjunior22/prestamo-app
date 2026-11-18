@@ -12,8 +12,9 @@ class NotificationLog(BaseModel):
     class NotificationType(models.TextChoices):
         LOAN_CREATED = 'LOAN_CREATED', 'Desembolso / Nuevo Préstamo'
         PAYMENT_RECEIPT = 'PAYMENT_RECEIPT', 'Comprobante de Pago'
-        DUE_REMINDER = 'DUE_REMINDER', 'Recordatorio de Vencimiento'
-        OVERDUE_ALERT = 'OVERDUE_ALERT', 'Alerta de Cuota Vencida'
+        DUE_REMINDER = 'DUE_REMINDER', 'Recordatorio Preventivo (Vence Mañana)'
+        DUE_TODAY = 'DUE_TODAY', 'Alerta de Pago (Vence Hoy)'
+        OVERDUE_ALERT = 'OVERDUE_ALERT', 'Alerta de Cuota Vencida (En Mora)'
         DAILY_DIGEST = 'DAILY_DIGEST', 'Resumen Matutino de Cobranza'
         TEST = 'TEST', 'Prueba de Conexión Gmail'
 

@@ -84,29 +84,15 @@ def notification_send_test_view(request):
 
 @login_required
 def notification_trigger_reminders_view(request):
-    """Dispatches reminders for all installments due today."""
+    """Dispatches automatic reminders for both tomorrow (1 día antes) and today (mismo día)."""
     if request.method == 'POST':
-        today = timezone.localdate()
-        due_installments = Installment.objects.filter(
-            due_date=today,
-            status__in=[Installment.Status.PENDING, Installment.Status.PARTIAL]
-        ).select_related('customer', 'loan')
-
-        sent = 0
-        skipped = 0
-        for inst in due_installments:
-            if inst.customer.email:
-                success, _ = EmailNotificationService.send_installment_reminder_email(inst)
-                if success:
-                    sent += 1
-                else:
-                    skipped += 1
-            else:
-                skipped += 1
+        results = EmailNotificationService.dispatch_automatic_reminders(check_duplicates=False)
 
         messages.success(
             request,
-            f"Proceso finalizado: {sent} recordatorios enviados exitosamente. {skipped} cuotas sin correo o fallidas."
+            f"Alertas despachadas: {results['eve_sent']} recordatorios preventivos (vencen mañana) "
+            f"y {results['today_sent']} alertas de cobro (vencen hoy) enviadas exitosamente. "
+            f"({results['skipped_no_email']} cuotas omitidas por falta de correo)."
         )
 
     return redirect('notifications:list')

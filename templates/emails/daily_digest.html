@@ -1,25 +1,102 @@
 {% extends 'emails/base_email.html' %}
 
-{% block title %}Resumen Matutino de Operaciones — {{ system_name }}{% endblock %}
+{% block title %}Reporte Diario de Cobranza (Hoy y Mañana) — {{ system_name }}{% endblock %}
 
 {% block content %}
 <div style="text-align: center; margin-bottom: 20px;">
-    <span class="badge badge-info">📊 Resumen Diario de Cartera</span>
-    <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 10px 0 4px;">Reporte Matutino de Cobranza</h2>
-    <p style="font-size: 13px; color: #64748b; margin: 0;">Fecha: <strong>{{ report_date|date:"d/m/Y" }}</strong></p>
+    <span class="badge badge-info" style="background-color: #dbeafe; color: #1e40af;">📊 Reporte Matutino Consolidado</span>
+    <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin: 10px 0 4px;">Cobranzas Programadas: Hoy y Mañana</h2>
+    <p style="font-size: 12px; color: #64748b; margin: 0;">Fecha de emisión: <strong>{{ report_date|date:"d/m/Y" }}</strong></p>
 </div>
 
-<div class="card" style="text-align: center;">
-    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b;">Meta de Recaudo para Hoy</div>
-    <div class="amount-highlight" style="color: #2563eb;">$ {{ today_due_amount|floatformat:0 }} COP</div>
-    <div style="font-size: 11px; color: #64748b;"><strong>{{ today_due_count }}</strong> cuotas programadas para vencer hoy</div>
+<!-- Key Performance Cards -->
+<div style="display: table; width: 100%; margin-bottom: 16px;">
+    <div style="display: table-cell; width: 48%; vertical-align: top; padding-right: 2%;">
+        <div class="card" style="text-align: center; margin: 0; border-top: 3px solid #2563eb;">
+            <div style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: #1d4ed8;">Meta de Cobro HOY</div>
+            <div style="font-size: 22px; font-weight: 900; color: #1e3a8a; margin: 4px 0;">$ {{ today_due_amount|floatformat:0 }}</div>
+            <div style="font-size: 11px; color: #64748b;"><strong>{{ today_due_count }}</strong> cuotas vencen hoy</div>
+        </div>
+    </div>
+    <div style="display: table-cell; width: 48%; vertical-align: top; padding-left: 2%;">
+        <div class="card" style="text-align: center; margin: 0; border-top: 3px solid #d97706;">
+            <div style="font-size: 10px; text-transform: uppercase; font-weight: 700; color: #b45309;">Vencimientos MAÑANA</div>
+            <div style="font-size: 22px; font-weight: 900; color: #92400e; margin: 4px 0;">$ {{ tomorrow_due_amount|floatformat:0 }}</div>
+            <div style="font-size: 11px; color: #64748b;"><strong>{{ tomorrow_due_count }}</strong> cuotas para mañana</div>
+        </div>
+    </div>
 </div>
 
-<h3 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 20px 0 8px;">1. Estado General de la Cartera</h3>
+<!-- 1. Cuotas a cobrar HOY -->
+<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 6px;">
+    1. Cuotas que Vencen HOY (Cobranza Inmediata)
+</h3>
+{% if today_installments %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Teléfono</th>
+            <th>Préstamo</th>
+            <th style="text-align: right;">Valor Cuota</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inst in today_installments %}
+        <tr>
+            <td style="font-weight: 700; color: #0f172a;">{{ inst.customer.full_name }}</td>
+            <td style="color: #64748b; font-size: 11px;">{{ inst.customer.phone|default:"—" }}</td>
+            <td style="color: #2563eb; font-family: monospace; font-size: 11px;">{{ inst.loan.loan_code }} (#{{ inst.installment_number }})</td>
+            <td style="text-align: right; font-weight: 800; color: #1e3a8a;">$ {{ inst.balance|floatformat:0 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="font-size: 12px; color: #059669; font-weight: 600; padding: 10px; background-color: #ecfdf5; border-radius: 8px;">
+    ✓ No hay cuotas programadas para vencer hoy.
+</p>
+{% endif %}
+
+<!-- 2. Cuotas que vencen MAÑANA -->
+<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 6px;">
+    2. Cuotas que Vencen MAÑANA (Avisos Preventivos)
+</h3>
+{% if tomorrow_installments %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>Teléfono</th>
+            <th>Préstamo</th>
+            <th style="text-align: right;">Valor Cuota</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inst in tomorrow_installments %}
+        <tr>
+            <td style="font-weight: 700; color: #0f172a;">{{ inst.customer.full_name }}</td>
+            <td style="color: #64748b; font-size: 11px;">{{ inst.customer.phone|default:"—" }}</td>
+            <td style="color: #d97706; font-family: monospace; font-size: 11px;">{{ inst.loan.loan_code }} (#{{ inst.installment_number }})</td>
+            <td style="text-align: right; font-weight: 800; color: #92400e;">$ {{ inst.balance|floatformat:0 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="font-size: 12px; color: #64748b; padding: 10px; background-color: #f8fafc; border-radius: 8px;">
+    No hay cuotas programadas para vencer el día de mañana.
+</p>
+{% endif %}
+
+<!-- 3. Resumen de Cartera y Mora -->
+<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 6px;">
+    3. Estado General de la Cartera
+</h3>
 <table class="data-table">
     <tr>
         <td style="color: #64748b;">Préstamos Activos:</td>
-        <td style="font-weight: 700; color: #1e293b;">{{ active_loans_count }}</td>
+        <td style="font-weight: 700; color: #1e293b;">{{ active_loans_count }} préstamos</td>
     </tr>
     <tr>
         <td style="color: #64748b;">Capital Total en la Calle:</td>
@@ -33,7 +110,10 @@
     </tr>
 </table>
 
-<h3 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 24px 0 8px;">2. Liquidez Disponible en Cuentas y Bolsillos</h3>
+<!-- 4. Liquidez en Cuentas -->
+<h3 style="font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 6px;">
+    4. Disponibilidad Líquida en Caja y Bolsillos
+</h3>
 <table class="data-table">
     {% for acc in accounts %}
     <tr>
@@ -44,35 +124,12 @@
     </tr>
     {% endfor %}
     <tr style="background-color: #f1f5f9; font-weight: 800;">
-        <td style="color: #0f172a;">Total Consolidado en Caja y Cuentas:</td>
+        <td style="color: #0f172a;">Saldo Total Consolidado:</td>
         <td style="color: #059669; font-size: 13px;">$ {{ total_cash|floatformat:0 }} COP</td>
     </tr>
 </table>
 
-{% if today_installments %}
-<h3 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 24px 0 8px;">3. Clientes a Cobrar Hoy</h3>
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Cliente</th>
-            <th>Préstamo</th>
-            <th style="text-align: right;">Cuota</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for inst in today_installments %}
-        <tr>
-            <td style="font-weight: 600;">{{ inst.customer.full_name }}</td>
-            <td style="color: #64748b; font-family: monospace;">{{ inst.loan.loan_code }} (#{{ inst.installment_number }})</td>
-            <td style="text-align: right; font-weight: 700; color: #0f172a;">$ {{ inst.balance|floatformat:0 }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% endif %}
-
-<div style="margin-top: 24px; text-align: center;">
-    <a href="{{ site_url }}" class="button">Ingresar al Sistema LoanManager</a>
+<div style="margin-top: 26px; text-align: center;">
+    <a href="{{ site_url }}" class="button" style="background-color: #14243a;">Abrir LoanManager</a>
 </div>
 {% endblock %}
-

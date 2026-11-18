@@ -166,3 +166,4 @@ class DashboardTestCase(TestCase):
         self.assertContains(response, 'LN-DASH-01')
         self.assertContains(response, 'monthlyFlowChart')
         self.assertContains(response, 'portfolioHealthChart')
+

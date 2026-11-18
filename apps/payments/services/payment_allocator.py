@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from apps.loans.models import Loan, Installment
-from apps.cashflow.models import CashMovement
+from apps.cashflow.models import CashAccount, CashMovement
 from apps.payments.models import Payment, PaymentAllocation
 from apps.payments.services.receipt_generator import generate_and_save_receipt_pdf
 
@@ -139,9 +139,20 @@ def allocate_payment(
 
         loan_locked.save()
 
+        # Map destination pocket / account based on payment method
+        account_type_map = {
+            Payment.PaymentMethod.CASH: CashAccount.AccountType.CASH,
+            Payment.PaymentMethod.NEQUI: CashAccount.AccountType.NEQUI,
+            Payment.PaymentMethod.DAVIPLATA: CashAccount.AccountType.DAVIPLATA,
+            Payment.PaymentMethod.BANCOLOMBIA: CashAccount.AccountType.BANCOLOMBIA,
+        }
+        dest_acc_type = account_type_map.get(payment_method, CashAccount.AccountType.CASH)
+        target_account = CashAccount.get_default_account(dest_acc_type)
+
         # Record Inflows into CashMovement
         if total_principal_applied > Decimal('0.00'):
             CashMovement.objects.create(
+                account=target_account,
                 movement_type=CashMovement.MovementType.PRINCIPAL_RECOVERY,
                 amount=total_principal_applied,
                 movement_date=payment_date,
@@ -153,6 +164,7 @@ def allocate_payment(
 
         if total_interest_applied > Decimal('0.00'):
             CashMovement.objects.create(
+                account=target_account,
                 movement_type=CashMovement.MovementType.INTEREST_INCOME,
                 amount=total_interest_applied,
                 movement_date=payment_date,

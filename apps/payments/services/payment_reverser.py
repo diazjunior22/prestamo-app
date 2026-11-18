@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from apps.loans.models import Loan, Installment
-from apps.cashflow.models import CashMovement
+from apps.cashflow.models import CashAccount, CashMovement
 from apps.payments.models import Payment
 from apps.payments.services.receipt_generator import generate_and_save_receipt_pdf
 
@@ -62,7 +62,11 @@ def reverse_payment(
         loan_locked.save()
 
         # Record offsetting cash ledger entry
+        original_mov = CashMovement.objects.filter(payment_reference=payment_locked.receipt_number).first()
+        target_account = original_mov.account if original_mov else CashAccount.get_default_account()
+
         CashMovement.objects.create(
+            account=target_account,
             movement_type=CashMovement.MovementType.REVERSAL,
             amount=payment_locked.amount,
             movement_date=today,

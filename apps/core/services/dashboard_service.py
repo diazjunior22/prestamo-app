@@ -288,3 +288,4 @@ class DashboardService:
         # Sort combined activities by timestamp descending
         activities.sort(key=lambda x: x['timestamp'], reverse=True)
         return activities[:limit]
+

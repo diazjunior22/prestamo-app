@@ -3,10 +3,12 @@ from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q, Sum
 from django.core.paginator import Paginator
 from django.utils import timezone
 from apps.customers.models import Customer
+from apps.cashflow.models import CashMovement
 from .models import Loan, Installment
 from .forms import LoanForm
 from .services.loan_calculator import LoanCalculator
@@ -221,3 +223,54 @@ def installment_list_view(request):
         'total_overdue': total_overdue,
         'overdue_count': overdue_count,
     })
+
+
+@login_required
+def loan_delete_view(request, pk):
+    """
+    Delete a loan with mandatory explicit user confirmation.
+    Safely cleans up related installments, payments, payment allocations,
+    and cash movements within a database transaction.
+    """
+    loan = get_object_or_404(
+        Loan.objects.select_related('customer').prefetch_related('payments', 'installments'),
+        pk=pk
+    )
+
+    if request.method == 'POST':
+        loan_code = loan.loan_code
+        customer_name = loan.customer.full_name
+        with transaction.atomic():
+            # 1. Clean up cash movements linked to this loan or its payments
+            payment_receipts = list(loan.payments.values_list('receipt_number', flat=True))
+            CashMovement.objects.filter(
+                Q(loan_reference=loan_code) | Q(payment_reference__in=payment_receipts)
+            ).delete()
+
+            # 2. Delete all payments associated with this loan (this also cascades to PaymentAllocation)
+            loan.payments.all().delete()
+
+            # 3. Delete the loan (cascades to Installments and remaining allocations)
+            loan.delete()
+
+        messages.success(
+            request,
+            f"El préstamo {loan_code} del cliente {customer_name} ha sido eliminado definitivamente."
+        )
+        return redirect('loans:list')
+
+    # GET request: render explicit confirmation page
+    total_paid = loan.payments.filter(status='COMPLETED').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    payments_count = loan.payments.count()
+    installments_count = loan.installments.count()
+
+    context = {
+        'page_title': f"Confirmar Eliminación — Préstamo {loan.loan_code}",
+        'active_nav': 'loans',
+        'loan': loan,
+        'total_paid': total_paid,
+        'payments_count': payments_count,
+        'installments_count': installments_count,
+    }
+    return render(request, 'loans/loan_confirm_delete.html', context)
+

@@ -37,6 +37,14 @@
                 <span>Imprimir Recibo</span>
             </a>
 
+            <!-- Delete Payment Button -->
+            <a href="{% url 'payments:delete' payment.id %}"
+                class="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 rounded-xl text-xs font-semibold transition"
+                title="Eliminar este cobro y restaurar saldos">
+                <i data-lucide="trash-2" class="w-4 h-4 text-rose-600"></i>
+                <span>Eliminar Cobro</span>
+            </a>
+
             <!-- Reversal Button (Only for ADMIN and when not reversed) -->
             {% if not payment.is_reversed and user.is_superuser or not payment.is_reversed and user.role == 'ADMIN' %}
                 <button type="button" @click="showReversalModal = true"

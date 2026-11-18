@@ -92,6 +92,11 @@
                            title="Editar Cliente">
                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                         </a>
+                        <a href="{% url 'customers:delete' customer.pk %}" 
+                           class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" 
+                           title="Eliminar Cliente">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </a>
                     </div>
                 </td>
             </tr>

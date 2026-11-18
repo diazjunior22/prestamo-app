@@ -401,3 +401,37 @@ class LoanCreationAndViewsTestCase(TestCase):
         self.assertContains(response, "Cronograma Global de Cuotas")
         self.assertContains(response, "Beatriz Pinzón")
 
+    def test_loan_delete_requires_confirmation_and_deletes(self):
+        loan = LoanCreator.create_loan(
+            customer=self.customer,
+            principal=Decimal('500000.00'),
+            interest_rate=Decimal('2.00'),
+            interest_type='FLAT',
+            payment_frequency='MONTHLY',
+            total_installments=2,
+            disbursement_date=datetime.date(2026, 11, 18),
+            first_payment_date=datetime.date(2026, 12, 18),
+            user=self.user
+        )
+        loan_id = loan.pk
+        loan_code = loan.loan_code
+
+        # 1. GET request: renders confirmation page with warning
+        res_get = self.client.get(reverse('loans:delete', kwargs={'pk': loan_id}))
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, "Confirmación Obligatoria")
+        self.assertContains(res_get, loan_code)
+        self.assertContains(res_get, "Beatriz Pinzón")
+        self.assertContains(res_get, "Sí, Eliminar Préstamo Definitivamente")
+
+        # 2. POST request: executes deletion
+        res_post = self.client.post(reverse('loans:delete', kwargs={'pk': loan_id}))
+        self.assertEqual(res_post.status_code, 302)
+        self.assertRedirects(res_post, reverse('loans:list'))
+
+        # Verify loan and installments are gone
+        self.assertFalse(Loan.objects.filter(pk=loan_id).exists())
+        self.assertEqual(Installment.objects.filter(loan_id=loan_id).count(), 0)
+        self.assertFalse(CashMovement.objects.filter(loan_reference=loan_code).exists())
+
+

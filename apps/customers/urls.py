@@ -9,4 +9,5 @@ urlpatterns = [
     path('<uuid:pk>/', views.customer_detail_view, name='detail'),
     path('<uuid:pk>/editar/', views.customer_update_view, name='update'),
     path('<uuid:pk>/cambiar-estado/', views.customer_toggle_status_view, name='toggle_status'),
+    path('<uuid:pk>/eliminar/', views.customer_delete_view, name='delete'),
 ]

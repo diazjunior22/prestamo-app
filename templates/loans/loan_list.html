@@ -189,6 +189,11 @@
                                     <i data-lucide="hand-coins" class="w-4 h-4 text-emerald-600"></i>
                                 </a>
                                 {% endif %}
+                                <a href="{% url 'loans:delete' loan.pk %}" 
+                                   class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" 
+                                   title="Eliminar Préstamo (Pide Confirmación)">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </a>
                             </div>
                         </td>
                     </tr>

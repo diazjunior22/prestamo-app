@@ -4,11 +4,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q, Sum
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
+from apps.cashflow.models import CashMovement
 from apps.loans.models import Loan, Installment
 from apps.payments.models import Payment
 from apps.payments.forms import PaymentForm, PaymentFilterForm, PaymentReversalForm
@@ -279,3 +281,66 @@ def payment_reverse_view(request, payment_id):
             messages.error(request, "Debe indicar una justificación válida para proceder con la reversión.")
 
     return redirect('payments:detail', payment_id=payment.id)
+
+
+@login_required
+def payment_delete_view(request, payment_id):
+    """
+    Deletes a payment/collection (cobro) record with confirmation.
+    Automatically restores the loan balance, installment balances, and cleans
+    up the associated cash movements within a database transaction.
+    """
+    payment = get_object_or_404(
+        Payment.objects.select_related('loan', 'customer').prefetch_related('allocations__installment'),
+        id=payment_id
+    )
+
+    if request.method == 'POST':
+        receipt_number = payment.receipt_number
+        loan = payment.loan
+        loan_code = loan.loan_code
+
+        with transaction.atomic():
+            # If payment was COMPLETED, roll back its allocations to installments & loan
+            if payment.status == Payment.Status.COMPLETED:
+                for alloc in payment.allocations.all():
+                    inst = alloc.installment
+                    inst.paid_principal = max(Decimal('0.00'), inst.paid_principal - alloc.principal_applied)
+                    inst.paid_interest = max(Decimal('0.00'), inst.paid_interest - alloc.interest_applied)
+                    inst.paid_at = None
+                    today = timezone.localdate()
+                    if inst.balance > Decimal('0.00'):
+                        inst.status = Installment.Status.OVERDUE if inst.due_date < today else Installment.Status.PENDING
+                    inst.save()
+
+                    loan.paid_principal = max(Decimal('0.00'), loan.paid_principal - alloc.principal_applied)
+                    loan.paid_interest = max(Decimal('0.00'), loan.paid_interest - alloc.interest_applied)
+                    loan.balance += (alloc.principal_applied + alloc.interest_applied)
+
+                # Re-evaluate loan status
+                if loan.status == Loan.Status.PAID and loan.balance > Decimal('0.00'):
+                    has_overdue = loan.installments.filter(status=Installment.Status.OVERDUE).exists()
+                    loan.status = Loan.Status.OVERDUE if has_overdue else Loan.Status.ACTIVE
+                loan.save()
+
+            # Clean up CashMovements associated with this receipt
+            CashMovement.objects.filter(payment_reference=receipt_number).delete()
+
+            # Delete the payment record (cascades to PaymentAllocation)
+            payment.delete()
+
+        messages.success(
+            request,
+            f"El cobro {receipt_number} ha sido eliminado exitosamente y los saldos del préstamo {loan_code} han sido restaurados."
+        )
+        return redirect('payments:list')
+
+    # GET request: render confirmation page
+    context = {
+        'page_title': f"Confirmar Eliminación — Cobro {payment.receipt_number}",
+        'active_nav': 'payments',
+        'payment': payment,
+        'loan': payment.loan,
+    }
+    return render(request, 'payments/payment_confirm_delete.html', context)
+

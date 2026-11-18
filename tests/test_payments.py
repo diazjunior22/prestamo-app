@@ -290,3 +290,39 @@ class PaymentModuleTestCase(TestCase):
         payment.refresh_from_db()
         self.assertTrue(payment.is_reversed)
 
+    def test_payment_delete_view_restores_balances(self):
+        # Register a payment of $440,000 for loan
+        payment = allocate_payment(
+            loan=self.loan,
+            amount=Decimal('440000.00'),
+            payment_date=timezone.localdate(),
+            payment_method=Payment.PaymentMethod.CASH,
+            user=self.user
+        )
+        p_id = payment.id
+        receipt_num = payment.receipt_number
+
+        self.loan.refresh_from_db()
+        balance_after_payment = self.loan.balance
+
+        # 1. GET: renders confirmation view
+        res_get = self.client.get(reverse('payments:delete', kwargs={'payment_id': p_id}))
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, receipt_num)
+        self.assertContains(res_get, "Confirmación de Eliminación")
+
+        # 2. POST: deletes payment and restores balances
+        res_post = self.client.post(reverse('payments:delete', kwargs={'payment_id': p_id}))
+        self.assertEqual(res_post.status_code, 302)
+        self.assertRedirects(res_post, reverse('payments:list'))
+
+        # Payment is deleted
+        self.assertFalse(Payment.objects.filter(id=p_id).exists())
+        self.assertEqual(PaymentAllocation.objects.filter(payment_id=p_id).count(), 0)
+
+        # Loan balance is restored back by +440,000
+        self.loan.refresh_from_db()
+        self.assertEqual(self.loan.balance, balance_after_payment + Decimal('440000.00'))
+        self.assertFalse(CashMovement.objects.filter(payment_reference=receipt_num).exists())
+
+

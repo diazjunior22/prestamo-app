@@ -9,4 +9,5 @@ urlpatterns = [
     path('simular/', views.loan_simulate_view, name='simulate'),
     path('cuotas/', views.installment_list_view, name='installments'),
     path('<uuid:pk>/', views.loan_detail_view, name='detail'),
+    path('<uuid:pk>/eliminar/', views.loan_delete_view, name='delete'),
 ]

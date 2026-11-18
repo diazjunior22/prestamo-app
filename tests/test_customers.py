@@ -169,3 +169,25 @@ class CustomerModuleTestCase(TestCase):
         self.customer1.refresh_from_db()
         self.assertEqual(self.customer1.status, Customer.Status.ACTIVE)
 
+    def test_customer_delete_view(self):
+        customer = Customer.objects.create(
+            first_name="Temporal",
+            last_name="Eliminar",
+            phone="3101112233",
+            created_by=self.user
+        )
+        c_id = customer.pk
+
+        # GET: renders confirmation
+        res_get = self.client.get(reverse('customers:delete', kwargs={'pk': c_id}))
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, "Temporal Eliminar")
+        self.assertContains(res_get, "Confirmación de Eliminación")
+
+        # POST: deletes customer
+        res_post = self.client.post(reverse('customers:delete', kwargs={'pk': c_id}))
+        self.assertEqual(res_post.status_code, 302)
+        self.assertRedirects(res_post, reverse('customers:list'))
+        self.assertFalse(Customer.objects.filter(pk=c_id).exists())
+
+

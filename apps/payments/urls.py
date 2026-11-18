@@ -10,4 +10,5 @@ urlpatterns = [
     path('<uuid:payment_id>/', views.payment_detail_view, name='detail'),
     path('<uuid:payment_id>/recibo/', views.payment_receipt_pdf_view, name='receipt_pdf'),
     path('<uuid:payment_id>/revertir/', views.payment_reverse_view, name='reverse'),
+    path('<uuid:payment_id>/eliminar/', views.payment_delete_view, name='delete'),
 ]

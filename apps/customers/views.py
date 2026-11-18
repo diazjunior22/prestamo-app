@@ -1,9 +1,11 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q, Value
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator
+from apps.cashflow.models import CashMovement
 from .models import Customer
 from .forms import CustomerForm, CustomerFilterForm
 
@@ -161,3 +163,51 @@ def customer_toggle_status_view(request, pk):
             messages.success(request, f"El cliente {customer.full_name} ha sido reactivado.")
 
     return redirect('customers:detail', pk=customer.pk)
+
+
+@login_required
+def customer_delete_view(request, pk):
+    """
+    Delete a customer with explicit confirmation.
+    Safely cleans up all loans, installments, payments, and cash movements atomically.
+    """
+    customer = get_object_or_404(
+        Customer.objects.prefetch_related('loans__payments', 'loans__installments'),
+        pk=pk
+    )
+
+    if request.method == 'POST':
+        full_name = customer.full_name
+        with transaction.atomic():
+            # Clean up all loans and payments belonging to this customer
+            for loan in customer.loans.all():
+                payment_receipts = list(loan.payments.values_list('receipt_number', flat=True))
+                CashMovement.objects.filter(
+                    Q(loan_reference=loan.loan_code) | Q(payment_reference__in=payment_receipts)
+                ).delete()
+                loan.payments.all().delete()
+                loan.delete()
+
+            # Clean up any payments directly linked to the customer (if any exist independently)
+            payment_receipts = list(customer.payments.values_list('receipt_number', flat=True))
+            CashMovement.objects.filter(payment_reference__in=payment_receipts).delete()
+            customer.payments.all().delete()
+
+            customer.delete()
+
+        messages.success(request, f"El cliente {full_name} ha sido eliminado exitosamente del sistema.")
+        return redirect('customers:list')
+
+    # GET request: render confirmation template
+    loans_count = customer.loans.count()
+    pending_balance = customer.get_pending_balance()
+
+    context = {
+        'page_title': f"Confirmar Eliminación — Cliente {customer.full_name}",
+        'active_nav': 'customers',
+        'customer': customer,
+        'loans_count': loans_count,
+        'pending_balance': pending_balance,
+    }
+    return render(request, 'customers/customer_confirm_delete.html', context)
+

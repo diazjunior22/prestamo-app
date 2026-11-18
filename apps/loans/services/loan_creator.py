@@ -112,4 +112,15 @@ class LoanCreator:
                 created_by=user
             )
 
-            return loan
+            loan_created = loan
+
+        # Dispatch email confirmation if customer has email (runs outside atomic block)
+        try:
+            from apps.notifications.services.email_service import EmailNotificationService
+            if customer.email:
+                EmailNotificationService.send_loan_created_email(loan_created)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Could not dispatch loan confirmation email: {e}")
+
+        return loan_created

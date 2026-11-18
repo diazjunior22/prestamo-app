@@ -1,0 +1,55 @@
+{% extends 'emails/base_email.html' %}
+
+{% block title %}Desembolso Préstamo {{ loan.loan_code }} — {{ system_name }}{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 20px;">
+    <span class="badge badge-success">✓ Desembolso Aprobado</span>
+    <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 10px 0 4px;">Confirmación de Nuevo Préstamo</h2>
+    <p style="font-size: 13px; color: #64748b; margin: 0;">Código de operación: <strong style="color: #2563eb;">{{ loan.loan_code }}</strong></p>
+</div>
+
+<p style="font-size: 13px; line-height: 1.6; margin: 0 0 16px;">
+    Hola <strong>{{ customer.full_name }}</strong>, nos complace informarte que tu préstamo ha sido registrado y desembolsado exitosamente con las siguientes condiciones financieras:
+</p>
+
+<div class="card" style="text-align: center;">
+    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b;">Monto del Capital Prestado</div>
+    <div class="amount-highlight" style="color: #059669;">$ {{ loan.principal|floatformat:0 }} COP</div>
+    <div style="font-size: 11px; color: #64748b;">Total a pagar: <strong>$ {{ loan.total_amount|floatformat:0 }} COP</strong></div>
+</div>
+
+<table class="data-table">
+    <tr>
+        <td style="color: #64748b; width: 45%;">Modalidad de Interés:</td>
+        <td style="font-weight: 700; color: #1e293b;">{{ loan.get_interest_type_display }} ({{ loan.interest_rate }}% {{ loan.get_interest_rate_period_display }})</td>
+    </tr>
+    <tr>
+        <td style="color: #64748b;">Frecuencia de Pago:</td>
+        <td style="font-weight: 700; color: #1e293b;">{{ loan.get_payment_frequency_display }}</td>
+    </tr>
+    <tr>
+        <td style="color: #64748b;">Cantidad de Cuotas:</td>
+        <td style="font-weight: 700; color: #1e293b;">{{ loan.total_installments }} cuotas</td>
+    </tr>
+    <tr>
+        <td style="color: #64748b;">Fecha de Desembolso:</td>
+        <td style="font-weight: 700; color: #1e293b;">{{ loan.disbursement_date|date:"d/m/Y" }}</td>
+    </tr>
+    <tr>
+        <td style="color: #64748b;">Primer Vencimiento:</td>
+        <td style="font-weight: 700; color: #2563eb;">{{ loan.first_payment_date|date:"d/m/Y" }}</td>
+    </tr>
+    {% if first_installment %}
+    <tr>
+        <td style="color: #64748b;">Valor de Cuota:</td>
+        <td style="font-weight: 800; color: #0f172a;">$ {{ first_installment.total_amount|floatformat:0 }} COP</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div style="margin-top: 24px; padding: 14px; background-color: #eff6ff; border-radius: 10px; font-size: 11px; color: #1d4ed8; line-height: 1.5;">
+    <strong>ℹ Recordatorio importante:</strong> Mantener tus cuotas al día te permite construir un historial positivo y acceder a mayores cupos de crédito.
+</div>
+{% endblock %}
+

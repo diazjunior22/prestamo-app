@@ -1,0 +1,30 @@
+{% extends 'emails/base_email.html' %}
+
+{% block title %}Prueba de Conexión Gmail — {{ system_name }}{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 20px;">
+    <span class="badge badge-success">✓ Conexión SMTP Exitosa</span>
+    <h2 style="font-size: 18px; font-weight: 800; color: #059669; margin: 10px 0 4px;">¡Tu correo de Gmail está conectado!</h2>
+    <p style="font-size: 13px; color: #64748b; margin: 0;">Servidor: <strong>smtp.gmail.com:587 (TLS)</strong></p>
+</div>
+
+<p style="font-size: 13px; line-height: 1.6; margin: 0 0 16px;">
+    Este correo confirma que el servidor de notificaciones de <strong>{{ system_name }}</strong> está configurado correctamente y listo para enviar:
+</p>
+
+<ul style="font-size: 13px; color: #334155; line-height: 1.8; padding-left: 20px;">
+    <li>Comprobantes automáticos de nuevos préstamos y planes de pago.</li>
+    <li>Recibos digitales oficiales cuando los clientes abonan a sus cuotas.</li>
+    <li>Recordatorios preventivos de cobro antes y en la fecha de vencimiento.</li>
+    <li>Alertas de mora y reportes matutinos diarios de cobranza.</li>
+</ul>
+
+<div class="card" style="font-size: 11px; color: #64748b; line-height: 1.5;">
+    <strong>Información técnica de envío:</strong><br>
+    • Remitente: <code>{{ from_email }}</code><br>
+    • Destinatario de prueba: <code>{{ to_email }}</code><br>
+    • Fecha y hora: <code>{{ sent_at|date:"d/m/Y H:i:s" }}</code>
+</div>
+{% endblock %}
+

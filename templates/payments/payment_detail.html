@@ -23,6 +23,20 @@
                 </a>
             {% endif %}
 
+            <!-- Send by Email Button -->
+            {% if not payment.is_reversed %}
+                <form method="post" action="{% url 'payments:send_email' payment.id %}" class="inline"
+                    onsubmit="return confirm('¿Deseas enviar el recibo oficial con PDF adjunto al correo {% if payment.customer.email %}{{ payment.customer.email }}{% else %}del cliente{% endif %}?');">
+                    {% csrf_token %}
+                    <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-xs transition"
+                        title="Enviar comprobante con PDF por correo electrónico al cliente">
+                        <i data-lucide="mail" class="w-4 h-4"></i>
+                        <span>Enviar por Correo</span>
+                    </button>
+                </form>
+            {% endif %}
+
             <!-- Download PDF -->
             <a href="{% url 'payments:receipt_pdf' payment.id %}?download=1"
                 class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold shadow-2xs transition">

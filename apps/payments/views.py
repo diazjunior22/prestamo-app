@@ -137,6 +137,15 @@ def payment_create_view(request):
                     notes=notes,
                     user=request.user
                 )
+                # Auto-dispatch receipt via email if customer has email configured
+                try:
+                    from apps.notifications.services.email_service import EmailNotificationService
+                    if payment.customer.email:
+                        EmailNotificationService.send_payment_receipt_email(payment)
+                except Exception as ex:
+                    import logging
+                    logging.getLogger(__name__).warning(f"Error auto-dispatching receipt email: {ex}")
+
                 messages.success(
                     request,
                     f"Recaudo registrado exitosamente: Recibo {payment.receipt_number} por $ {payment.amount:,.0f} COP."
@@ -343,4 +352,20 @@ def payment_delete_view(request, payment_id):
         'loan': payment.loan,
     }
     return render(request, 'payments/payment_confirm_delete.html', context)
+
+
+@login_required
+def payment_send_receipt_email_view(request, payment_id):
+    """Sends or resends the official payment receipt with PDF attachment via email."""
+    payment = get_object_or_404(Payment, id=payment_id)
+    if request.method == 'POST':
+        custom_email = request.POST.get('recipient_email', '').strip() or None
+        from apps.notifications.services.email_service import EmailNotificationService
+        success, msg = EmailNotificationService.send_payment_receipt_email(payment, recipient_email=custom_email)
+        if success:
+            messages.success(request, f"¡Recibo enviado con éxito! {msg}")
+        else:
+            messages.error(request, f"No se pudo enviar el recibo: {msg}")
+    return redirect('payments:detail', payment_id=payment.id)
+
 

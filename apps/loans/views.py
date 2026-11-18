@@ -169,6 +169,22 @@ def loan_detail_view(request, pk):
 
 
 @login_required
+def loan_send_plan_email_view(request, pk):
+    """Sends or resends loan confirmation and payment plan to customer via email."""
+    loan = get_object_or_404(Loan.objects.select_related('customer'), pk=pk)
+    if request.method == 'POST':
+        custom_email = request.POST.get('recipient_email', '').strip() or None
+        from apps.notifications.services.email_service import EmailNotificationService
+        success, msg = EmailNotificationService.send_loan_created_email(loan, recipient_email=custom_email)
+        if success:
+            messages.success(request, f"¡Plan de pagos enviado con éxito! {msg}")
+        else:
+            messages.error(request, f"No se pudo enviar el correo: {msg}")
+    return redirect('loans:detail', pk=loan.id)
+
+
+
+@login_required
 def installment_list_view(request):
     """
     Global agenda of installments across all active loans.

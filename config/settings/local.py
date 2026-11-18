@@ -32,6 +32,7 @@ else:
         }
     }
 
-# Email backend for development (outputs to console)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email backend: uses SMTP if Gmail credentials are provided in .env, otherwise console for development
+if not (os.getenv('EMAIL_HOST_USER') and os.getenv('EMAIL_HOST_PASSWORD')):
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

@@ -248,3 +248,4 @@ class CalendarBuilder:
             'total_balance': total_balance,
             'total_paid': total_paid,
         }
+

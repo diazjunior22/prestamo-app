@@ -138,3 +138,4 @@ class CalendarModuleTestCase(TestCase):
         self.assertContains(response, self.customer.full_name)
         self.assertContains(response, 'LN-CAL-001')
         self.assertContains(response, 'En Mora')
+

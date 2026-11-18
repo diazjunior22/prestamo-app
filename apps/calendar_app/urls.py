@@ -6,3 +6,4 @@ app_name = 'calendar_app'
 urlpatterns = [
     path('', views.calendar_view, name='index'),
 ]
+

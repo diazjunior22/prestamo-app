@@ -6,3 +6,4 @@ app_name = 'audit'
 urlpatterns = [
     path('', views.audit_log_view, name='list'),
 ]
+

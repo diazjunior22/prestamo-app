@@ -34,3 +34,4 @@ class Command(BaseCommand):
             role=User.Role.ADMIN
         )
         self.stdout.write(self.style.SUCCESS(f"Superusuario '{email}' creado exitosamente."))
+

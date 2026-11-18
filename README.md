@@ -118,3 +118,4 @@ Acceder en el navegador a: `http://127.0.0.1:8000/`
 - [ ] **Fase 8: Reportes Financieros y Exportaciones (Excel, PDF, CSV)**.
 - [ ] **Fase 9: Seguridad, Auditoría y QA Integral**.
 - [ ] **Fase 10: Docker, DevOps y Despliegue en Neon + Render**.
+

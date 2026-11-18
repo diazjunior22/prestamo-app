@@ -8,3 +8,4 @@ def payment_list_view(request):
 @login_required
 def payment_create_view(request):
     return render(request, 'payments/payment_form.html', {'active_nav': 'payments'})
+

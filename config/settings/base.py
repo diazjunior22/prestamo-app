@@ -120,3 +120,4 @@ ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@loanmanager.local')
 CURRENCY_CODE = os.getenv('CURRENCY_CODE', 'COP')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'LoanManager <notificaciones@loanmanager.local>')
+

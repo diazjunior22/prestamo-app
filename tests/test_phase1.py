@@ -81,3 +81,4 @@ class AuthenticationAndNavigationTestCase(TestCase):
             with self.subTest(route=route_name):
                 response = self.client.get(reverse(route_name))
                 self.assertEqual(response.status_code, 200, f"Route {route_name} failed with status {response.status_code}")
+

@@ -13,3 +13,4 @@ def system_context(request):
         'TIME_ZONE': getattr(settings, 'TIME_ZONE', 'America/Bogota'),
         'unread_notifications_count': 0,
     }
+

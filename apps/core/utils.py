@@ -36,3 +36,4 @@ def quantize_currency(amount) -> Decimal:
     if isinstance(amount, float):
         amount = str(amount)
     return Decimal(str(amount)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+

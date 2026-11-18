@@ -1,0 +1,162 @@
+{% load core_tags %}
+
+<div class="overflow-x-auto">
+    {% if customers %}
+    <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200/80">
+            <tr>
+                <th class="py-3 px-4 font-semibold">Cliente</th>
+                <th class="py-3 px-4 font-semibold">Documento</th>
+                <th class="py-3 px-4 font-semibold">Contacto</th>
+                <th class="py-3 px-4 font-semibold">Ciudad</th>
+                <th class="py-3 px-4 font-semibold text-center">Estado</th>
+                <th class="py-3 px-4 font-semibold text-right">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for customer in customers %}
+            <tr class="hover:bg-slate-50/70 transition">
+                <!-- Cliente -->
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-[#14243A] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                            {{ customer.first_name|slice:":1"|upper }}{{ customer.last_name|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <a href="{% url 'customers:detail' customer.pk %}" class="font-bold text-slate-900 hover:text-blue-600 transition block">
+                                {{ customer.full_name }}
+                            </a>
+                            <span class="text-[11px] text-slate-400">Registrado el {{ customer.created_at|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Documento -->
+                <td class="py-3 px-4">
+                    <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-xs">
+                        <span class="font-semibold text-slate-500">{{ customer.document_type }}</span>
+                        <span>{{ customer.document_number }}</span>
+                    </div>
+                </td>
+
+                <!-- Contacto & WhatsApp -->
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-700 font-medium">{{ customer.phone }}</span>
+                        {% if customer.whatsapp_clean %}
+                        <a href="https://wa.me/{{ customer.whatsapp_clean }}" target="_blank" 
+                           class="p-1 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition" 
+                           title="Contactar por WhatsApp">
+                            <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+
+                <!-- Ciudad -->
+                <td class="py-3 px-4 text-slate-600">
+                    {{ customer.city }}
+                </td>
+
+                <!-- Estado -->
+                <td class="py-3 px-4 text-center">
+                    {% if customer.status == 'ACTIVE' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo
+                    </span>
+                    {% elif customer.status == 'INACTIVE' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Inactivo
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> En Mora
+                    </span>
+                    {% endif %}
+                </td>
+
+                <!-- Acciones -->
+                <td class="py-3 px-4 text-right">
+                    <div class="flex items-center justify-end gap-1.5">
+                        <a href="{% url 'customers:detail' customer.pk %}" 
+                           class="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition" 
+                           title="Ver Ficha Completa">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </a>
+                        <a href="{% url 'customers:update' customer.pk %}" 
+                           class="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition" 
+                           title="Editar Cliente">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div>
+            Mostrando página <span class="font-bold text-slate-800">{{ page_obj.number }}</span> de <span class="font-bold text-slate-800">{{ page_obj.paginator.num_pages }}</span> (Total {{ page_obj.paginator.count }} clientes)
+        </div>
+        <div class="flex items-center gap-1">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               hx-get="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               hx-target="#customer-table-container"
+               class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
+                &larr; Anterior
+            </a>
+            {% endif %}
+
+            {% for p in page_obj.paginator.page_range %}
+                {% if p == page_obj.number %}
+                <span class="px-2.5 py-1.5 rounded-lg bg-blue-600 text-white font-bold">{{ p }}</span>
+                {% elif p >= page_obj.number|add:"-2" and p <= page_obj.number|add:"2" %}
+                <a href="?page={{ p }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                   hx-get="?page={{ p }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                   hx-target="#customer-table-container"
+                   class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
+                    {{ p }}
+                </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               hx-get="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               hx-target="#customer-table-container"
+               class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
+                Siguiente &rarr;
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="p-12 text-center">
+        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="user-x" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">No se encontraron clientes</h3>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            {% if query or status_filter %}
+            No hay ningún cliente que coincida con los criterios de búsqueda actuales. Intenta modificar los filtros.
+            {% else %}
+            Aún no has registrado ningún cliente. Registra tu primer prestatario para comenzar a otorgar préstamos.
+            {% endif %}
+        </p>
+        <div class="mt-4">
+            <a href="{% url 'customers:create' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-xs transition">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                <span>Registrar Primer Cliente</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+

@@ -28,3 +28,4 @@ def profile_view(request):
         form = UserProfileForm(instance=request.user)
     
     return render(request, 'users/profile.html', {'form': form})
+

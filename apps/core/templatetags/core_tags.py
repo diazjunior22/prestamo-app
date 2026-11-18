@@ -23,3 +23,4 @@ def percentage_filter(value):
         return f"{float(value):.1f}%"
     except (ValueError, TypeError):
         return f"{value}%"
+

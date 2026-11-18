@@ -25,6 +25,13 @@
         
         <!-- Quick Action Buttons (Desktop) -->
         <div class="hidden md:flex items-center gap-2">
+            <!-- Nuevo Cliente -->
+            <a href="{% url 'customers:create' %}" 
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition shadow-2xs">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5 text-blue-600"></i>
+                <span>Nuevo Cliente</span>
+            </a>
+
             <!-- Registrar Pago -->
             <a href="{% url 'payments:create' %}" 
                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition shadow-2xs">

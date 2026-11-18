@@ -6,3 +6,4 @@ app_name = 'cashflow'
 urlpatterns = [
     path('', views.cashflow_view, name='index'),
 ]
+

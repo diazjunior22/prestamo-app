@@ -13,3 +13,4 @@ urlpatterns = [
         success_url='/auth/perfil/'
     ), name='change_password'),
 ]
+

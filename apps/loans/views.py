@@ -12,3 +12,4 @@ def loan_create_view(request):
 @login_required
 def installment_list_view(request):
     return render(request, 'loans/installment_list.html', {'active_nav': 'installments', 'installments': []})
+

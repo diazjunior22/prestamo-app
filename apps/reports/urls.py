@@ -6,3 +6,4 @@ app_name = 'reports'
 urlpatterns = [
     path('', views.report_list_view, name='list'),
 ]
+

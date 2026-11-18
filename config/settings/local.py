@@ -34,3 +34,4 @@ else:
 
 # Email backend for development (outputs to console)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+

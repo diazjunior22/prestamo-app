@@ -6,3 +6,4 @@ app_name = 'notifications'
 urlpatterns = [
     path('', views.notification_list_view, name='list'),
 ]
+

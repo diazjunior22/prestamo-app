@@ -1,0 +1,79 @@
+{% load core_tags %}
+
+{% if error %}
+<div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs">
+    <div class="flex items-center gap-2 font-bold mb-1">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600"></i>
+        <span>No se pudo calcular la proyección</span>
+    </div>
+    <p>{{ error }}</p>
+</div>
+{% elif schedule %}
+<div class="space-y-4">
+    <!-- Summary Financial Matrix (4 Cards) -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+            <span class="block text-[10px] font-semibold text-slate-400 uppercase">Capital</span>
+            <span class="text-xs font-bold text-slate-900 tabular-nums">{{ schedule.principal|cop }}</span>
+        </div>
+        <div class="bg-purple-50 p-2.5 rounded-xl border border-purple-200/60">
+            <span class="block text-[10px] font-semibold text-purple-600 uppercase">Interés Total</span>
+            <span class="text-xs font-bold text-purple-900 tabular-nums">{{ schedule.total_interest|cop }}</span>
+        </div>
+        <div class="bg-blue-50 p-2.5 rounded-xl border border-blue-200/60">
+            <span class="block text-[10px] font-semibold text-blue-600 uppercase">Total a Pagar</span>
+            <span class="text-xs font-bold text-blue-900 tabular-nums">{{ schedule.total_amount|cop }}</span>
+        </div>
+        <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200/60">
+            <span class="block text-[10px] font-semibold text-emerald-600 uppercase">Cuotas</span>
+            <span class="text-xs font-bold text-emerald-900">{{ schedule.total_installments }} cuotas</span>
+        </div>
+    </div>
+
+    <!-- Amortization Table Preview -->
+    <div class="border border-slate-200 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+        <table class="w-full text-left text-[11px]">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-[9px] tracking-wider sticky top-0 border-b border-slate-200 z-10">
+                <tr>
+                    <th class="py-2 px-3 text-center">#</th>
+                    <th class="py-2 px-3">Vencimiento</th>
+                    <th class="py-2 px-3 text-right">Capital</th>
+                    <th class="py-2 px-3 text-right">Interés</th>
+                    <th class="py-2 px-3 text-right font-bold">Cuota Total</th>
+                    <th class="py-2 px-3 text-right">Saldo Restante</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+                {% for item in schedule.installments %}
+                <tr class="hover:bg-slate-50/50 transition">
+                    <td class="py-2 px-3 text-center font-bold text-slate-600">{{ item.installment_number }}</td>
+                    <td class="py-2 px-3 text-slate-700 font-medium">{{ item.due_date|date:"d/m/Y" }}</td>
+                    <td class="py-2 px-3 text-right tabular-nums text-slate-600">{{ item.principal|cop }}</td>
+                    <td class="py-2 px-3 text-right tabular-nums text-purple-700">{{ item.interest|cop }}</td>
+                    <td class="py-2 px-3 text-right tabular-nums font-bold text-slate-900">{{ item.total|cop }}</td>
+                    <td class="py-2 px-3 text-right tabular-nums text-slate-500">{{ item.balance_after|cop }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="text-[10px] text-slate-400 flex items-center justify-between px-1">
+        <span>* Ajuste de centavos aplicado automáticamente en la última cuota</span>
+        <span class="font-semibold text-slate-600">{{ schedule.get_interest_type_display }}</span>
+    </div>
+</div>
+{% else %}
+<div class="p-8 text-center text-slate-400 text-xs">
+    <i data-lucide="calculator" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+    <p class="font-medium text-slate-600">Simulador listo</p>
+    <p class="text-[11px] text-slate-400 mt-0.5">Ingresa el capital y el plazo para generar la tabla de amortización.</p>
+</div>
+{% endif %}
+
+<script>
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+</script>
+

@@ -1,26 +1,236 @@
 {% extends 'base.html' %}
+{% load core_tags %}
 
 {% block title %}Cuotas y Vencimientos — {{ SYSTEM_NAME }}{% endblock %}
 {% block page_title %}Cronograma de Cuotas{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
+
+    <!-- Header Banner -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div>
-            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Cronograma de Cuotas</h1>
-            <p class="text-xs text-slate-400 mt-0.5">Control de vencimientos diarios, semanales, quincenales y mensuales</p>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Cronograma Global de Cuotas</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Control y seguimiento de obligaciones por fecha de vencimiento, cobros de hoy y morosidad</p>
+        </div>
+        <a href="{% url 'payments:create' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition">
+            <i data-lucide="hand-coins" class="w-4 h-4"></i>
+            <span>Registrar Pago</span>
+        </a>
+    </div>
+
+    <!-- Quick Stats Pills -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Por Cobrar Hoy</span>
+                <p class="text-xl font-bold text-amber-600 mt-0.5 tabular-nums">{{ total_due_today|cop }}</p>
+            </div>
+            <div class="p-2 rounded-xl bg-amber-50 text-amber-600">
+                <i data-lucide="calendar-check" class="w-4 h-4"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cartera Vencida (Mora)</span>
+                <p class="text-xl font-bold text-rose-600 mt-0.5 tabular-nums">{{ total_overdue|cop }}</p>
+            </div>
+            <div class="p-2 rounded-xl bg-rose-50 text-rose-600">
+                <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+            <div>
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Cuotas en Mora</span>
+                <p class="text-xl font-bold text-slate-900 mt-0.5 tabular-nums">{{ overdue_count }} cuotas</p>
+            </div>
+            <div class="p-2 rounded-xl bg-slate-100 text-slate-700">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs">
-        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
-            <i data-lucide="calendar-clock" class="w-6 h-6"></i>
+    <!-- Filter Tabs & Search Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- Quick Filter Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+            <a href="{% url 'loans:installments' %}" 
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if not date_filter and not status_filter %}bg-blue-600 text-white shadow-2xs{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+                Todas
+            </a>
+            <a href="{% url 'loans:installments' %}?date_filter=today" 
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if date_filter == 'today' %}bg-amber-600 text-white shadow-2xs{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+                Vencen Hoy
+            </a>
+            <a href="{% url 'loans:installments' %}?date_filter=week" 
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if date_filter == 'week' %}bg-blue-600 text-white shadow-2xs{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+                Esta Semana
+            </a>
+            <a href="{% url 'loans:installments' %}?date_filter=overdue" 
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if date_filter == 'overdue' %}bg-rose-600 text-white shadow-2xs{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+                Vencidas en Mora
+            </a>
+            <a href="{% url 'loans:installments' %}?status=PAID" 
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if status_filter == 'PAID' %}bg-emerald-600 text-white shadow-2xs{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+                Pagadas
+            </a>
         </div>
-        <h3 class="text-sm font-bold text-slate-900">Módulo de Cuotas Preparado</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
-            En la <strong>Fase 4</strong> implementaremos la vista granular de cuotas, filtros por fecha de vencimiento, cuotas de hoy, de la semana y detección automática de mora.
-        </p>
+
+        <!-- Search Input -->
+        <form method="get" class="w-full sm:w-64">
+            {% if date_filter %}<input type="hidden" name="date_filter" value="{{ date_filter }}">{% endif %}
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input type="text" 
+                       name="q" 
+                       value="{{ query }}"
+                       placeholder="Buscar por cliente o código..." 
+                       class="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition">
+            </div>
+        </form>
     </div>
+
+    <!-- Installments Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        {% if installments %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200/80">
+                    <tr>
+                        <th class="py-3 px-4 font-semibold">Vencimiento</th>
+                        <th class="py-3 px-4 font-semibold">Cliente</th>
+                        <th class="py-3 px-4 font-semibold">Préstamo</th>
+                        <th class="py-3 px-4 text-center"># Cuota</th>
+                        <th class="py-3 px-4 text-right font-semibold">Capital</th>
+                        <th class="py-3 px-4 text-right font-semibold">Interés</th>
+                        <th class="py-3 px-4 text-right font-semibold font-bold">Total Cuota</th>
+                        <th class="py-3 px-4 text-right font-semibold">Saldo</th>
+                        <th class="py-3 px-4 text-center font-semibold">Estado</th>
+                        <th class="py-3 px-4 text-right font-semibold">Acción</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for inst in installments %}
+                    <tr class="hover:bg-slate-50/70 transition {% if inst.status == 'OVERDUE' %}bg-rose-50/30{% elif inst.due_date == today and inst.status != 'PAID' %}bg-amber-50/40{% endif %}">
+                        <!-- Vencimiento -->
+                        <td class="py-3.5 px-4 font-medium text-slate-800">
+                            {{ inst.due_date|date:"d/m/Y" }}
+                            {% if inst.due_date == today and inst.status != 'PAID' %}
+                            <span class="block text-[10px] font-bold text-amber-600">¡Vence Hoy!</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Cliente -->
+                        <td class="py-3.5 px-4">
+                            <a href="{% url 'customers:detail' inst.customer.pk %}" class="font-bold text-slate-900 hover:text-blue-600 transition block">
+                                {{ inst.customer.full_name }}
+                            </a>
+                            <span class="text-[10px] text-slate-400">{{ inst.customer.phone }}</span>
+                        </td>
+
+                        <!-- Préstamo -->
+                        <td class="py-3.5 px-4 font-mono font-medium text-slate-600">
+                            <a href="{% url 'loans:detail' inst.loan.pk %}" class="hover:underline">
+                                {{ inst.loan.loan_code }}
+                            </a>
+                        </td>
+
+                        <!-- # Cuota -->
+                        <td class="py-3.5 px-4 text-center font-bold text-slate-700">
+                            {{ inst.installment_number }}/{{ inst.loan.total_installments }}
+                        </td>
+
+                        <!-- Capital -->
+                        <td class="py-3.5 px-4 text-right text-slate-600 tabular-nums">
+                            {{ inst.principal_amount|cop }}
+                        </td>
+
+                        <!-- Interés -->
+                        <td class="py-3.5 px-4 text-right text-purple-700 tabular-nums">
+                            {{ inst.interest_amount|cop }}
+                        </td>
+
+                        <!-- Total Cuota -->
+                        <td class="py-3.5 px-4 text-right font-bold text-slate-900 tabular-nums">
+                            {{ inst.total_amount|cop }}
+                        </td>
+
+                        <!-- Saldo -->
+                        <td class="py-3.5 px-4 text-right font-bold tabular-nums {% if inst.balance > 0 %}text-blue-600{% else %}text-slate-400{% endif %}">
+                            {{ inst.balance|cop }}
+                        </td>
+
+                        <!-- Estado -->
+                        <td class="py-3.5 px-4 text-center">
+                            {% if inst.status == 'PAID' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Pagada
+                            </span>
+                            {% elif inst.status == 'PARTIAL' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Parcial
+                            </span>
+                            {% elif inst.status == 'OVERDUE' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Vencida
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                Pendiente
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Acción -->
+                        <td class="py-3.5 px-4 text-right">
+                            {% if inst.status != 'PAID' %}
+                            <a href="{% url 'payments:create' %}?loan_id={{ inst.loan.pk }}" 
+                               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold transition">
+                                <i data-lucide="hand-coins" class="w-3.5 h-3.5"></i>
+                                <span>Cobrar</span>
+                            </a>
+                            {% else %}
+                            <span class="text-[11px] text-slate-400 italic">Al día</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 border-t border-slate-100 bg-white flex items-center justify-between text-xs text-slate-500">
+            <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex items-center gap-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition">&larr; Anterior</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition">Siguiente &rarr;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="p-12 text-center text-xs">
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="calendar-x" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-800">No hay cuotas que coincidan con el filtro</h3>
+            <p class="text-slate-500 max-w-sm mx-auto mt-1">
+                Todas las cuotas de tus préstamos aparecerán aquí ordenadas cronológicamente para facilitar la cobranza.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
 </div>
 {% endblock %}
-

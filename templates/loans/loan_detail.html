@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+
+{% block title %}Préstamo {{ loan.loan_code }} — {{ SYSTEM_NAME }}{% endblock %}
+{% block page_title %}Detalle de Préstamo{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Card -->
+    <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+            <div class="flex flex-wrap items-center gap-2.5">
+                <span class="font-mono font-bold text-xl text-slate-900">{{ loan.loan_code }}</span>
+                {% if loan.status == 'ACTIVE' %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Activo
+                </span>
+                {% elif loan.status == 'PAID' %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Finalizado
+                </span>
+                {% elif loan.status == 'OVERDUE' %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> En Mora
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                    {{ loan.get_status_display }}
+                </span>
+                {% endif %}
+            </div>
+
+            <p class="text-xs text-slate-500 mt-1.5 flex items-center gap-2">
+                <span>Cliente:</span>
+                <a href="{% url 'customers:detail' loan.customer.pk %}" class="font-bold text-slate-800 hover:text-blue-600 underline transition">
+                    {{ loan.customer.full_name }}
+                </a>
+                <span>&bull;</span>
+                <span>{{ loan.customer.document_type }} {{ loan.customer.document_number }}</span>
+                <span>&bull;</span>
+                <span>Desembolsado: {{ loan.disbursement_date|date:"d/m/Y" }}</span>
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2">
+            {% if loan.status != 'PAID' %}
+            <a href="{% url 'payments:create' %}?loan_id={{ loan.pk }}" 
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition">
+                <i data-lucide="hand-coins" class="w-4 h-4"></i>
+                <span>Registrar Pago / Abono</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'loans:list' %}" 
+               class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                &larr; Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Financial Breakdown (5 KPI Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <!-- Capital Inicial -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Capital Prestado</span>
+            <div class="text-lg font-bold text-slate-900 mt-1 tabular-nums">{{ loan.principal|cop }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Monto entregado</p>
+        </div>
+
+        <!-- Interés Pactado -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Intereses Totales</span>
+            <div class="text-lg font-bold text-purple-900 mt-1 tabular-nums">{{ loan.total_interest|cop }}</div>
+            <p class="text-[11px] text-purple-600 mt-1">{{ loan.interest_rate|percentage }} &bull; {{ loan.get_interest_type_display }}</p>
+        </div>
+
+        <!-- Total Deuda -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total a Pagar</span>
+            <div class="text-lg font-bold text-slate-900 mt-1 tabular-nums">{{ loan.total_amount|cop }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">{{ loan.total_installments }} cuotas {{ loan.get_payment_frequency_display|lower }}s</p>
+        </div>
+
+        <!-- Total Amortizado -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Abonado</span>
+            <div class="text-lg font-bold text-emerald-600 mt-1 tabular-nums">{{ loan.total_paid|cop }}</div>
+            <p class="text-[11px] text-emerald-600 mt-1">Cap: {{ loan.paid_principal|cop }} | Int: {{ loan.paid_interest|cop }}</p>
+        </div>
+
+        <!-- Saldo Pendiente -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Saldo Pendiente</span>
+            <div class="text-lg font-bold text-blue-600 mt-1 tabular-nums">{{ loan.balance|cop }}</div>
+            <p class="text-[11px] text-blue-500 mt-1 font-semibold">{{ loan.progress_percentage|floatformat:0 }}% completado</p>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
+        <div class="flex items-center justify-between text-xs mb-2">
+            <span class="font-semibold text-slate-700">Progreso de Amortización del Crédito</span>
+            <span class="font-bold text-blue-600 tabular-nums">{{ loan.total_paid|cop }} / {{ loan.total_amount|cop }} ({{ loan.progress_percentage|floatformat:1 }}%)</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: {{ loan.progress_percentage }}%"></div>
+        </div>
+    </div>
+
+    <!-- Full Amortization Schedule Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-sm font-bold text-slate-900 tracking-tight">Plan de Amortización y Cronograma de Pagos</h2>
+                <p class="text-xs text-slate-400">Desglose de cada una de las {{ loan.total_installments }} cuotas persistidas en base de datos</p>
+            </div>
+            <span class="text-xs font-semibold text-slate-500">
+                Pagadas: <strong class="text-emerald-600">{{ loan.paid_installments_count }}</strong> / {{ loan.total_installments }}
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-200/80">
+                    <tr>
+                        <th class="py-3 px-4 text-center"># Cuota</th>
+                        <th class="py-3 px-4 font-semibold">Fecha Vencimiento</th>
+                        <th class="py-3 px-4 font-semibold text-right">Capital</th>
+                        <th class="py-3 px-4 font-semibold text-right">Interés</th>
+                        <th class="py-3 px-4 font-semibold text-right font-bold">Total Cuota</th>
+                        <th class="py-3 px-4 font-semibold text-right">Total Pagado</th>
+                        <th class="py-3 px-4 font-semibold text-right">Saldo Restante</th>
+                        <th class="py-3 px-4 font-semibold text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for inst in installments %}
+                    <tr class="hover:bg-slate-50/70 transition {% if inst.status == 'OVERDUE' %}bg-rose-50/30{% elif inst.status == 'PAID' %}bg-emerald-50/20{% endif %}">
+                        <!-- # Cuota -->
+                        <td class="py-3 px-4 text-center font-bold text-slate-700">
+                            {{ inst.installment_number }}
+                        </td>
+
+                        <!-- Vencimiento -->
+                        <td class="py-3 px-4 font-medium text-slate-800">
+                            {{ inst.due_date|date:"d/m/Y" }}
+                        </td>
+
+                        <!-- Capital -->
+                        <td class="py-3 px-4 text-right font-medium text-slate-600 tabular-nums">
+                            {{ inst.principal_amount|cop }}
+                        </td>
+
+                        <!-- Interés -->
+                        <td class="py-3 px-4 text-right font-medium text-purple-700 tabular-nums">
+                            {{ inst.interest_amount|cop }}
+                        </td>
+
+                        <!-- Total Cuota -->
+                        <td class="py-3 px-4 text-right font-bold text-slate-900 tabular-nums">
+                            {{ inst.total_amount|cop }}
+                        </td>
+
+                        <!-- Pagado -->
+                        <td class="py-3 px-4 text-right font-medium text-emerald-600 tabular-nums">
+                            {{ inst.total_paid|cop }}
+                        </td>
+
+                        <!-- Saldo Restante -->
+                        <td class="py-3 px-4 text-right font-bold tabular-nums {% if inst.balance > 0 %}text-blue-600{% else %}text-slate-400{% endif %}">
+                            {{ inst.balance|cop }}
+                        </td>
+
+                        <!-- Estado -->
+                        <td class="py-3 px-4 text-center">
+                            {% if inst.status == 'PAID' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Pagada
+                            </span>
+                            {% elif inst.status == 'PARTIAL' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Parcial
+                            </span>
+                            {% elif inst.status == 'OVERDUE' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Vencida
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Pendiente
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Contract Notes -->
+    {% if loan.notes %}
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Observaciones / Garantías</span>
+        <p class="text-xs text-slate-700 leading-relaxed">{{ loan.notes }}</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+

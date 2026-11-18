@@ -33,10 +33,14 @@
 
                 <!-- Documento -->
                 <td class="py-3 px-4">
+                    {% if customer.document_number %}
                     <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-xs">
                         <span class="font-semibold text-slate-500">{{ customer.document_type }}</span>
                         <span>{{ customer.document_number }}</span>
                     </div>
+                    {% else %}
+                    <span class="text-slate-400 text-[11px] italic">Sin documento</span>
+                    {% endif %}
                 </td>
 
                 <!-- Contacto & WhatsApp -->

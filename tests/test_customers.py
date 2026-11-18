@@ -72,16 +72,54 @@ class CustomerModuleTestCase(TestCase):
         self.assertContains(response, "Ya existe un cliente registrado con el documento")
         self.assertEqual(Customer.objects.filter(first_name='Otro').count(), 0)
 
-    def test_customer_search_by_name_and_document(self):
-        # Search by name
-        res_name = self.client.get(reverse('customers:list') + '?q=Andr')
-        self.assertEqual(res_name.status_code, 200)
-        self.assertContains(res_name, "Andrés Gómez")
+    def test_customer_creation_with_only_mandatory_fields(self):
+        """Verify that only first_name, last_name, and phone are mandatory"""
+        data = {
+            'first_name': 'Julián',
+            'last_name': 'Castro',
+            'phone': '3009876543',
+            'document_number': '',
+            'status': 'ACTIVE',
+        }
+        response = self.client.post(reverse('customers:create'), data=data)
+        self.assertEqual(response.status_code, 302)
+        customer = Customer.objects.filter(first_name='Julián', last_name='Castro').first()
+        self.assertIsNotNone(customer)
+        self.assertIsNone(customer.document_number)
+        self.assertEqual(customer.phone, '3009876543')
 
-        # Search by document
-        res_doc = self.client.get(reverse('customers:list') + '?q=1020304050')
-        self.assertEqual(res_doc.status_code, 200)
-        self.assertContains(res_doc, "1020304050")
+    def test_customer_mandatory_fields_validation(self):
+        """Missing first_name, last_name, or phone must fail validation"""
+        # Missing phone
+        res_no_phone = self.client.post(reverse('customers:create'), data={'first_name': 'Ana', 'last_name': 'Soler', 'phone': ''})
+        self.assertEqual(res_no_phone.status_code, 200)
+        self.assertContains(res_no_phone, "El número de teléfono es obligatorio.")
+
+        # Missing first_name
+        res_no_name = self.client.post(reverse('customers:create'), data={'first_name': '', 'last_name': 'Soler', 'phone': '3110001122'})
+        self.assertEqual(res_no_name.status_code, 200)
+        self.assertContains(res_no_name, "El nombre del cliente es obligatorio.")
+
+        # Missing last_name
+        res_no_last = self.client.post(reverse('customers:create'), data={'first_name': 'Ana', 'last_name': '', 'phone': '3110001122'})
+        self.assertEqual(res_no_last.status_code, 200)
+        self.assertContains(res_no_last, "El apellido del cliente es obligatorio.")
+
+    def test_customer_search_by_name(self):
+        # Search by first name
+        res_first = self.client.get(reverse('customers:list') + '?q=Andr')
+        self.assertEqual(res_first.status_code, 200)
+        self.assertContains(res_first, "Andrés Gómez")
+
+        # Search by last name
+        res_last = self.client.get(reverse('customers:list') + '?q=Gómez')
+        self.assertEqual(res_last.status_code, 200)
+        self.assertContains(res_last, "Andrés Gómez")
+
+        # Search by full name combined
+        res_full = self.client.get(reverse('customers:list') + '?q=Andrés Gómez')
+        self.assertEqual(res_full.status_code, 200)
+        self.assertContains(res_full, "Andrés Gómez")
 
         # Search nonexistent
         res_none = self.client.get(reverse('customers:list') + '?q=InexistenteXYZ')

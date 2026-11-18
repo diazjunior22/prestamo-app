@@ -30,11 +30,15 @@ class Customer(BaseModel):
         max_length=10,
         choices=DocumentType.choices,
         default=DocumentType.CC,
+        blank=True,
+        null=True,
         verbose_name="Tipo de documento"
     )
     document_number = models.CharField(
         max_length=35,
         unique=True,
+        blank=True,
+        null=True,
         db_index=True,
         verbose_name="Número de documento"
     )
@@ -42,7 +46,7 @@ class Customer(BaseModel):
     whatsapp = models.CharField(max_length=25, blank=True, null=True, verbose_name="WhatsApp")
     email = models.EmailField(blank=True, null=True, verbose_name="Correo electrónico")
     address = models.CharField(max_length=255, blank=True, null=True, verbose_name="Dirección de residencia o negocio")
-    city = models.CharField(max_length=100, default='Bogotá', verbose_name="Ciudad")
+    city = models.CharField(max_length=100, default='Bogotá', blank=True, null=True, verbose_name="Ciudad")
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -77,7 +81,9 @@ class Customer(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.full_name} ({self.document_type} {self.document_number})"
+        if self.document_number:
+            return f"{self.full_name} ({self.document_type} {self.document_number})"
+        return f"{self.full_name} ({self.phone})"
 
     @property
     def full_name(self) -> str:
@@ -95,9 +101,9 @@ class Customer(BaseModel):
 
     def clean(self):
         super().clean()
-        if self.document_number:
+        if self.document_number and str(self.document_number).strip():
             # Clean spaces and symbols from document number
-            cleaned_doc = "".join(self.document_number.split()).replace(".", "").replace("-", "")
+            cleaned_doc = "".join(str(self.document_number).split()).replace(".", "").replace("-", "")
             self.document_number = cleaned_doc
             # Validate uniqueness case-insensitively
             existing = Customer.objects.filter(document_number__iexact=cleaned_doc).exclude(id=self.id)
@@ -105,8 +111,12 @@ class Customer(BaseModel):
                 raise ValidationError({
                     'document_number': f"Ya existe un cliente registrado con el documento número {cleaned_doc}."
                 })
+        else:
+            self.document_number = None
 
     def save(self, *args, **kwargs):
+        if not self.document_number or not str(self.document_number).strip():
+            self.document_number = None
         self.full_clean()
         if not self.whatsapp and self.phone:
             self.whatsapp = self.phone

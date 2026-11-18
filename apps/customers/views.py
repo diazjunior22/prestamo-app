@@ -1,7 +1,8 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Value
+from django.db.models.functions import Concat
 from django.core.paginator import Paginator
 from .models import Customer
 from .forms import CustomerForm, CustomerFilterForm
@@ -9,7 +10,7 @@ from .forms import CustomerForm, CustomerFilterForm
 @login_required
 def customer_list_view(request):
     """
-    List customers with instant HTMX search by name, document or phone,
+    List customers with instant HTMX search by name (first, last, and full name),
     filtering by status, and full pagination.
     """
     query = request.GET.get('q', '').strip()
@@ -18,12 +19,12 @@ def customer_list_view(request):
     customers_qs = Customer.objects.all().order_by('-created_at')
 
     if query:
-        customers_qs = customers_qs.filter(
+        customers_qs = customers_qs.annotate(
+            full_name_db=Concat('first_name', Value(' '), 'last_name')
+        ).filter(
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query) |
-            Q(document_number__icontains=query) |
-            Q(phone__icontains=query) |
-            Q(whatsapp__icontains=query)
+            Q(full_name_db__icontains=query)
         )
 
     if status_filter:

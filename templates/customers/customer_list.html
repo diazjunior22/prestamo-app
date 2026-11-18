@@ -65,7 +65,7 @@
                 <input type="text" 
                        name="q" 
                        value="{{ query }}"
-                       placeholder="Buscar por nombre, cédula o teléfono..." 
+                       placeholder="Buscar cliente por nombre..." 
                        class="w-full pl-9 pr-4 py-2 bg-slate-50/50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
                        hx-get="{% url 'customers:list' %}"
                        hx-trigger="keyup changed delay:300ms, search"

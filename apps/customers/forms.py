@@ -55,6 +55,17 @@ class CustomerForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': TEXTAREA_CLASSES, 'rows': 3, 'placeholder': 'Observaciones de solvencia, trabajo o acuerdos especiales...'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['first_name'].required = True
+        self.fields['first_name'].error_messages['required'] = "El nombre del cliente es obligatorio."
+        self.fields['last_name'].required = True
+        self.fields['last_name'].error_messages['required'] = "El apellido del cliente es obligatorio."
+        self.fields['phone'].required = True
+        self.fields['phone'].error_messages['required'] = "El número de teléfono es obligatorio."
+        self.fields['document_number'].required = False
+        self.fields['document_type'].required = False
+
     def clean_first_name(self):
         name = self.cleaned_data.get('first_name', '').strip()
         if not name:
@@ -68,13 +79,14 @@ class CustomerForm(forms.ModelForm):
         return last_name
 
     def clean_document_number(self):
-        doc = self.cleaned_data.get('document_number', '').strip()
-        if not doc:
-            raise forms.ValidationError("El número de documento es obligatorio.")
+        doc = self.cleaned_data.get('document_number')
+        if not doc or not str(doc).strip():
+            return None
+        doc = str(doc).strip()
         # Remove dots, dashes, spaces
         cleaned = re.sub(r'[\s\.\-]', '', doc)
         if len(cleaned) < 5:
-            raise forms.ValidationError("El número de documento debe contener al menos 5 dígitos.")
+            raise forms.ValidationError("El número de documento debe contener al menos 5 dígitos si se especifica.")
         
         # Check duplicate
         query = Customer.objects.filter(document_number__iexact=cleaned)
@@ -100,7 +112,7 @@ class CustomerFilterForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full pl-9 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-2xs',
-            'placeholder': 'Buscar por nombre, documento o teléfono...',
+            'placeholder': 'Buscar cliente por nombre...',
             'hx-get': '',
             'hx-trigger': 'keyup changed delay:300ms, search',
             'hx-target': '#customer-table-container',

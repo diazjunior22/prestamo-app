@@ -159,7 +159,7 @@ def cash_transfer_view(request):
 
 @login_required
 def cash_reconciliation_view(request):
-    """Handles cash count / app reconciliation audit (Arqueo)."""
+    """Handles cash count / app reconciliation audit (Arqueo) and auto-adjusts balance."""
     if request.method == 'POST':
         form = CashReconciliationForm(request.POST)
         if form.is_valid():
@@ -168,20 +168,21 @@ def cash_reconciliation_view(request):
                     account=form.cleaned_data['account'],
                     physical_balance=form.cleaned_data['physical_balance'],
                     notes=form.cleaned_data['notes'],
-                    user=request.user
+                    user=request.user,
+                    adjust_balance=True
                 )
                 if rec.difference == Decimal('0.00'):
-                    messages.success(request, f"¡Arqueo en '{rec.account.name}' perfecto! Saldo cuadrado exactamente.")
+                    messages.success(request, f"¡Arqueo en '{rec.account.name}' perfecto! Saldo cuadrado exactamente en $ {rec.physical_balance:,.0f} COP.")
                 elif rec.difference > Decimal('0.00'):
-                    messages.info(request, f"Arqueo registrado con SOBRANTE de $ {rec.difference:,.2f} COP en '{rec.account.name}'.")
+                    messages.success(request, f"Arqueo completado: Saldo de '{rec.account.name}' ajustado a $ {rec.physical_balance:,.0f} COP (Sobrante/Ingreso de $ {rec.difference:,.0f} COP registrado).")
                 else:
-                    messages.warning(request, f"Arqueo registrado con FALTANTE de $ {abs(rec.difference):,.2f} COP en '{rec.account.name}'.")
+                    messages.success(request, f"Arqueo completado: Saldo de '{rec.account.name}' ajustado a $ {rec.physical_balance:,.0f} COP (Faltante/Salida de $ {abs(rec.difference):,.0f} COP registrado).")
             except ValidationError as e:
                 messages.error(request, e.message if hasattr(e, 'message') else str(e))
         else:
             for field, errs in form.errors.items():
                 for err in errs:
-                    messages.error(request, f"{err}")
+                    messages.error(request, f"Error en arqueo: {err}")
     return redirect('cashflow:index')
 
 
@@ -197,4 +198,33 @@ def cash_account_create_view(request):
             for field, errs in form.errors.items():
                 for err in errs:
                     messages.error(request, f"{err}")
+    return redirect('cashflow:index')
+
+
+@login_required
+def cash_movement_delete_view(request, pk):
+    """Allows deleting a manual cash movement, transfer, or arqueo adjustment."""
+    movement = get_object_or_404(CashMovement, pk=pk)
+
+    if request.method == 'POST':
+        # Protect automatic movements from loans or payments
+        if movement.loan_reference or movement.payment_reference:
+            messages.error(
+                request,
+                "No se puede eliminar directamente un movimiento generado por un préstamo o pago. "
+                "Para anularlo, gestiona el préstamo o cobro desde su respectivo módulo."
+            )
+            return redirect('cashflow:index')
+
+        desc = movement.description
+        amount = movement.amount
+
+        # If it is linked to a transfer, delete both legs
+        if movement.transfer_reference:
+            CashMovement.objects.filter(transfer_reference=movement.transfer_reference).delete()
+            messages.success(request, f"Transferencia de $ {amount:,.0f} COP eliminada exitosamente en ambas cuentas.")
+        else:
+            movement.delete()
+            messages.success(request, f"Movimiento '{desc}' ($ {amount:,.0f} COP) eliminado exitosamente.")
+
     return redirect('cashflow:index')

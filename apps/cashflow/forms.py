@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django import forms
 from django.utils import timezone
 from apps.cashflow.models import CashAccount, CashMovement, CashReconciliation
@@ -26,6 +27,7 @@ class CashMovementForm(forms.ModelForm):
         widgets = {
             'account': forms.Select(attrs={
                 'class': 'w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white transition',
+                'id': 'id_movement_account',
             }),
             'amount': forms.NumberInput(attrs={
                 'class': 'w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white transition',
@@ -53,19 +55,10 @@ class CashMovementForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         amount = cleaned_data.get('amount')
-        movement_type = cleaned_data.get('movement_type')
-        account = cleaned_data.get('account')
 
         if amount and amount <= 0:
             self.add_error('amount', 'El monto debe ser un valor positivo mayor a cero.')
 
-        if account and amount and movement_type in [CashMovement.MovementType.EXPENSE, CashMovement.MovementType.WITHDRAWAL]:
-            bal = account.get_current_balance()
-            if amount > bal:
-                self.add_error(
-                    'amount',
-                    f"Fondos insuficientes en '{account.name}'. Saldo actual: $ {bal:,.2f} COP."
-                )
         return cleaned_data
 
 
@@ -78,6 +71,7 @@ class CashTransferForm(forms.Form):
         label="Cuenta de Origen",
         widget=forms.Select(attrs={
             'class': 'w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white transition',
+            'id': 'id_source_account',
         })
     )
     target_account = forms.ModelChoiceField(
@@ -85,6 +79,7 @@ class CashTransferForm(forms.Form):
         label="Cuenta de Destino",
         widget=forms.Select(attrs={
             'class': 'w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white transition',
+            'id': 'id_target_account',
         })
     )
     amount = forms.DecimalField(
@@ -122,6 +117,11 @@ class CashTransferForm(forms.Form):
         self.fields['target_account'].queryset = qs
         self.fields['source_account'].empty_label = None
         self.fields['target_account'].empty_label = None
+
+        if qs.count() >= 2:
+            self.fields['source_account'].initial = qs[0]
+            self.fields['target_account'].initial = qs[1]
+
         if not self.initial.get('transfer_date'):
             self.initial['transfer_date'] = timezone.localdate()
 
@@ -131,16 +131,15 @@ class CashTransferForm(forms.Form):
         tgt = cleaned_data.get('target_account')
         amount = cleaned_data.get('amount')
 
+        if not src:
+            self.add_error('source_account', 'Debes seleccionar la cuenta de origen.')
+        if not tgt:
+            self.add_error('target_account', 'Debes seleccionar la cuenta de destino.')
         if src and tgt and src.id == tgt.id:
-            self.add_error('target_account', 'La cuenta de destino debe ser diferente a la de origen.')
+            self.add_error('target_account', 'La cuenta de destino debe ser diferente a la cuenta de origen.')
+        if amount and amount <= Decimal('0.00'):
+            self.add_error('amount', 'El monto a transferir debe ser mayor a cero.')
 
-        if src and amount:
-            bal = src.get_current_balance()
-            if amount > bal:
-                self.add_error(
-                    'amount',
-                    f"Saldo insuficiente en '{src.name}' ($ {bal:,.2f} COP) para transferir $ {amount:,.2f} COP."
-                )
         return cleaned_data
 
 
@@ -153,6 +152,7 @@ class CashReconciliationForm(forms.Form):
         label="Cuenta a Conciliar / Arquear",
         widget=forms.Select(attrs={
             'class': 'w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white transition',
+            'id': 'id_reconcile_account',
         })
     )
     physical_balance = forms.DecimalField(

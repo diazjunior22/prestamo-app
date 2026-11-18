@@ -40,14 +40,6 @@ class CashflowService:
         if movement_type not in valid_types:
             raise ValidationError("Tipo de movimiento manual no permitido.")
 
-        # Check balance if outflow
-        if movement_type in [CashMovement.MovementType.EXPENSE, CashMovement.MovementType.WITHDRAWAL]:
-            current_bal = account.get_current_balance()
-            if amount > current_bal:
-                raise ValidationError(
-                    f"Saldo insuficiente en '{account.name}' ($ {current_bal:,.2f} COP) para realizar esta salida de $ {amount:,.2f} COP."
-                )
-
         return CashMovement.objects.create(
             account=account,
             movement_type=movement_type,
@@ -82,17 +74,18 @@ class CashflowService:
             raise ValidationError("El monto de transferencia debe ser superior a cero.")
 
         with transaction.atomic():
-            # Check source balance with pessimistic lock
             source_acc_locked = CashAccount.objects.select_for_update().get(id=source_account.id)
-            current_bal = source_acc_locked.get_current_balance()
-            if amount > current_bal:
+            target_acc_locked = CashAccount.objects.select_for_update().get(id=target_account.id)
+
+            source_balance = source_acc_locked.get_current_balance()
+            if amount > source_balance:
                 raise ValidationError(
-                    f"Fondos insuficientes en '{source_acc_locked.name}'. Saldo actual: $ {current_bal:,.2f} COP."
+                    f"Fondos insuficientes en '{source_acc_locked.name}'. "
+                    f"Saldo disponible: $ {source_balance:,.0f} COP."
                 )
 
             transfer_ref = f"TRF-{timezone.now().strftime('%Y%m%d%H%M%S')}"
-
-            extra_notes = f" ({notes.strip()})" if notes.strip() else ""
+            extra_notes = f" ({notes.strip()})" if notes and notes.strip() else ""
 
             # Outflow from source
             outflow = CashMovement.objects.create(
@@ -100,19 +93,18 @@ class CashflowService:
                 movement_type=CashMovement.MovementType.TRANSFER_OUT,
                 amount=amount,
                 movement_date=transfer_date,
-                description=f"Transferencia enviada a {target_account.name}{extra_notes}",
+                description=f"Transferencia enviada a {target_acc_locked.name}{extra_notes}",
                 transfer_reference=transfer_ref,
                 created_by=user
             )
 
             # Inflow into target
-            target_acc_locked = CashAccount.objects.select_for_update().get(id=target_account.id)
             inflow = CashMovement.objects.create(
                 account=target_acc_locked,
                 movement_type=CashMovement.MovementType.TRANSFER_IN,
                 amount=amount,
                 movement_date=transfer_date,
-                description=f"Transferencia recibida desde {source_account.name}{extra_notes}",
+                description=f"Transferencia recibida desde {source_acc_locked.name}{extra_notes}",
                 transfer_reference=transfer_ref,
                 created_by=user
             )
@@ -125,25 +117,57 @@ class CashflowService:
         account: CashAccount,
         physical_balance: Decimal,
         notes: str = '',
-        user=None
+        user=None,
+        adjust_balance: bool = True
     ) -> CashReconciliation:
         """
         Performs box/account reconciliation, comparing actual counted money / app balance
-        against the expected system ledger balance.
+        against the expected system ledger balance, and automatically adjusts the ledger
+        balance so that the account balance matches the physical counted balance.
         """
         physical_balance = Decimal(str(physical_balance)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        expected_balance = account.get_current_balance()
-        difference = physical_balance - expected_balance
 
-        return CashReconciliation.objects.create(
-            account=account,
-            reconciliation_date=timezone.localdate(),
-            expected_balance=expected_balance,
-            physical_balance=physical_balance,
-            difference=difference,
-            notes=notes.strip() if notes else '',
-            created_by=user
-        )
+        with transaction.atomic():
+            account_locked = CashAccount.objects.select_for_update().get(id=account.id)
+            expected_balance = account_locked.get_current_balance()
+            difference = physical_balance - expected_balance
+
+            reconciliation = CashReconciliation.objects.create(
+                account=account_locked,
+                reconciliation_date=timezone.localdate(),
+                expected_balance=expected_balance,
+                physical_balance=physical_balance,
+                difference=difference,
+                notes=notes.strip() if notes else '',
+                created_by=user
+            )
+
+            if adjust_balance and difference != Decimal('0.00'):
+                note_text = f" ({notes.strip()})" if notes and notes.strip() else ""
+                if difference < Decimal('0.00'):
+                    # Faltante / Retiro: salida para ajustar al dinero físico real
+                    CashMovement.objects.create(
+                        account=account_locked,
+                        movement_type=CashMovement.MovementType.WITHDRAWAL,
+                        amount=abs(difference),
+                        movement_date=timezone.localdate(),
+                        description=f"Ajuste por arqueo de caja (Faltante / Retiro){note_text}",
+                        transfer_reference=f"ARQ-{reconciliation.id}",
+                        created_by=user
+                    )
+                else:
+                    # Sobrante / Ingreso: entrada para ajustar al dinero físico real
+                    CashMovement.objects.create(
+                        account=account_locked,
+                        movement_type=CashMovement.MovementType.CAPITAL_INJECTION,
+                        amount=difference,
+                        movement_date=timezone.localdate(),
+                        description=f"Ajuste por arqueo de caja (Sobrante / Ingreso){note_text}",
+                        transfer_reference=f"ARQ-{reconciliation.id}",
+                        created_by=user
+                    )
+
+            return reconciliation
 
     @classmethod
     def get_accounts_summary(cls) -> dict:

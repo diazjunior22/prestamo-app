@@ -88,23 +88,68 @@ class CashflowTestCase(TestCase):
             )
 
     def test_cash_reconciliation_arqueo(self):
-        """Reconciliation compares physical or app balance with ledger balance."""
+        """
+        Reconciliation compares physical or app balance with ledger balance,
+        and automatically adjusts the pocket balance to the counted money.
+        """
         CashflowService.record_manual_movement(
             account=self.acc_nequi,
             movement_type=CashMovement.MovementType.CAPITAL_INJECTION,
-            amount=Decimal('500000.00')
+            amount=Decimal('500000.00'),
+            description='Fondeo inicial Nequi'
         )
+        self.assertEqual(self.acc_nequi.get_current_balance(), Decimal('500000.00'))
 
-        # Counted in Nequi app is $495,000 (missing $5,000 due to fee or unaccounted withdrawal)
+        # Counted in Nequi app is $495,000 (missing $5,000)
         rec = CashflowService.record_reconciliation(
             account=self.acc_nequi,
             physical_balance=Decimal('495000.00'),
-            notes='Faltante por verificar'
+            notes='Faltante por verificar',
+            adjust_balance=True
         )
 
         self.assertEqual(rec.expected_balance, Decimal('500000.00'))
         self.assertEqual(rec.physical_balance, Decimal('495000.00'))
         self.assertEqual(rec.difference, Decimal('-5000.00'))
+        # The balance of the account is now adjusted to the physical balance!
+        self.assertEqual(self.acc_nequi.get_current_balance(), Decimal('495000.00'))
+
+    def test_withdrawal_and_expense_reflect_immediately(self):
+        """
+        Quitar dinero (Retiro o Gasto Operativo) must immediately deduct from
+        the account balance and the consolidated total.
+        """
+        # Inject $1,000,000 into Efectivo
+        CashflowService.record_manual_movement(
+            account=self.acc_cash,
+            movement_type=CashMovement.MovementType.CAPITAL_INJECTION,
+            amount=Decimal('1000000.00'),
+            description='Base inicial caja'
+        )
+        self.assertEqual(self.acc_cash.get_current_balance(), Decimal('1000000.00'))
+
+        # Quitar dinero: Gasto operativo de $80,000
+        expense = CashflowService.record_manual_movement(
+            account=self.acc_cash,
+            movement_type=CashMovement.MovementType.EXPENSE,
+            amount=Decimal('800000.00'),
+            description='Pago servicios y suministros'
+        )
+        self.assertEqual(self.acc_cash.get_current_balance(), Decimal('200000.00'))
+
+        # Quitar dinero: Retiro de $50,000
+        withdrawal = CashflowService.record_manual_movement(
+            account=self.acc_cash,
+            movement_type=CashMovement.MovementType.WITHDRAWAL,
+            amount=Decimal('50000.00'),
+            description='Retiro personal de caja'
+        )
+        self.assertEqual(self.acc_cash.get_current_balance(), Decimal('150000.00'))
+
+        # Delete the withdrawal via movement delete view: restores balance to $200,000
+        response = self.client.post(reverse('cashflow:movement_delete', args=[withdrawal.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.acc_cash.get_current_balance(), Decimal('200000.00'))
 
     def test_views_flow(self):
         """HTTP endpoints for cashflow view, movements, transfers and reconciliations."""
@@ -140,13 +185,15 @@ class CashflowTestCase(TestCase):
         self.assertEqual(self.acc_nu.get_current_balance(), Decimal('500000.00'))
         self.assertEqual(self.acc_cash.get_current_balance(), Decimal('300000.00'))
 
-        # 4. Arqueo POST
+        # 4. Arqueo POST with adjustment: user counts $280,000 in cash ($20,000 missing)
         rec_data = {
             'account': self.acc_cash.id,
-            'physical_balance': '300000.00',
-            'notes': 'Caja física contada en billetes'
+            'physical_balance': '280000.00',
+            'notes': 'Arqueo de billetes en efectivo'
         }
         response = self.client.post(reverse('cashflow:reconciliation'), data=rec_data)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(CashReconciliation.objects.count(), 1)
+        # Cash balance is immediately adjusted to $280,000!
+        self.assertEqual(self.acc_cash.get_current_balance(), Decimal('280000.00'))
 

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendario de Cobros — {{ SYSTEM_NAME }}{% endblock %}
+{% block page_title %}Calendario de Cobranza{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Calendario de Cobros</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Vista mensual, semanal y diaria de compromisos de pago con código de colores</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs">
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="calendar" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">Módulo de Calendario Preparado</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+            En la <strong>Fase 6</strong> implementaremos la vista de calendario interactiva con código de semáforo (verde: pagada, azul: próxima, amarillo: vence hoy, rojo: en mora).
+        </p>
+    </div>
+</div>
+{% endblock %}

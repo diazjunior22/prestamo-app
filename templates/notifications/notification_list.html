@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Notificaciones — {{ SYSTEM_NAME }}{% endblock %}
+{% block page_title %}Centro de Notificaciones{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Alertas y Notificaciones</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Historial de avisos automáticos, recordatorios de vencimiento y resumen diario</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs">
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="bell" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">Centro de Notificaciones Preparado</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+            En la <strong>Fase 6</strong> implementaremos las alertas internas y el comando de resumen matutino (7:00 AM hora Bogotá) con integración de correo.
+        </p>
+    </div>
+</div>
+{% endblock %}

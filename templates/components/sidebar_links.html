@@ -1,0 +1,107 @@
+<!-- 1. Dashboard -->
+<a href="{% url 'core:dashboard' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'dashboard' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Dashboard' : ''">
+    <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0 {% if active_nav == 'dashboard' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Dashboard</span>
+</a>
+
+<!-- 2. Clientes -->
+<a href="{% url 'customers:list' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'customers' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Clientes' : ''">
+    <i data-lucide="users" class="w-4 h-4 shrink-0 {% if active_nav == 'customers' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Clientes</span>
+</a>
+
+<!-- 3. Préstamos -->
+<a href="{% url 'loans:list' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'loans' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Préstamos' : ''">
+    <i data-lucide="receipt" class="w-4 h-4 shrink-0 {% if active_nav == 'loans' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Préstamos</span>
+</a>
+
+<!-- 4. Cuotas -->
+<a href="{% url 'loans:installments' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'installments' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Cuotas' : ''">
+    <i data-lucide="calendar-clock" class="w-4 h-4 shrink-0 {% if active_nav == 'installments' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Cuotas</span>
+</a>
+
+<!-- 5. Pagos -->
+<a href="{% url 'payments:list' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'payments' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Pagos' : ''">
+    <i data-lucide="credit-card" class="w-4 h-4 shrink-0 {% if active_nav == 'payments' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Pagos y Abonos</span>
+</a>
+
+<!-- 6. Calendario de cobros -->
+<a href="{% url 'calendar_app:index' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'calendar' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Calendario de cobros' : ''">
+    <i data-lucide="calendar" class="w-4 h-4 shrink-0 {% if active_nav == 'calendar' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Calendario de Cobros</span>
+</a>
+
+<!-- 7. Cartera -->
+<a href="{% url 'portfolio:index' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'portfolio' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Cartera' : ''">
+    <i data-lucide="pie-chart" class="w-4 h-4 shrink-0 {% if active_nav == 'portfolio' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Cartera y Mora</span>
+</a>
+
+<!-- 8. Caja y movimientos -->
+<a href="{% url 'cashflow:index' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'cashflow' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Caja y movimientos' : ''">
+    <i data-lucide="arrow-left-right" class="w-4 h-4 shrink-0 {% if active_nav == 'cashflow' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Caja y Movimientos</span>
+</a>
+
+<!-- Divider -->
+<div class="pt-2 pb-1">
+    <div class="h-px bg-slate-800"></div>
+</div>
+
+<!-- 9. Reportes -->
+<a href="{% url 'reports:list' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'reports' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Reportes' : ''">
+    <i data-lucide="file-bar-chart" class="w-4 h-4 shrink-0 {% if active_nav == 'reports' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Reportes</span>
+</a>
+
+<!-- 10. Notificaciones -->
+<a href="{% url 'notifications:list' %}" 
+   class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'notifications' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Notificaciones' : ''">
+    <div class="flex items-center gap-3 truncate">
+        <i data-lucide="bell" class="w-4 h-4 shrink-0 {% if active_nav == 'notifications' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+        <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Notificaciones</span>
+    </div>
+    {% if unread_notifications_count > 0 %}
+    <span x-show="!sidebarCollapsed" class="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-blue-600 text-white">
+        {{ unread_notifications_count }}
+    </span>
+    {% endif %}
+</a>
+
+<!-- 11. Auditoría -->
+<a href="{% url 'audit:list' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'audit' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Auditoría' : ''">
+    <i data-lucide="shield-check" class="w-4 h-4 shrink-0 {% if active_nav == 'audit' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Auditoría</span>
+</a>
+
+<!-- 12. Configuración -->
+<a href="{% url 'users:profile' %}" 
+   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition group {% if active_nav == 'settings' %}bg-blue-600/20 text-white border-l-4 border-blue-500 font-semibold{% else %}text-slate-300 hover:bg-slate-800/60 hover:text-white{% endif %}"
+   :title="sidebarCollapsed ? 'Configuración' : ''">
+    <i data-lucide="settings" class="w-4 h-4 shrink-0 {% if active_nav == 'settings' %}text-blue-400{% else %}text-slate-400 group-hover:text-blue-400{% endif %}"></i>
+    <span x-show="!sidebarCollapsed" x-transition.opacity class="truncate">Configuración</span>
+</a>

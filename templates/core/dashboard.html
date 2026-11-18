@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% load core_tags %}
+
+{% block title %}Dashboard General — {{ SYSTEM_NAME }}{% endblock %}
+{% block page_title %}Dashboard Financiero{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Executive Greeting & Quick Info Banner -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Hola, {{ user.first_name|default:user.username }}</h1>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Estado financiero consolidado al <span class="font-semibold text-slate-700">{{ today|date:"d \d\e F \d\e Y" }}</span> (Hora Colombia).
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a href="{% url 'loans:create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-xs transition">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Nuevo Préstamo</span>
+            </a>
+            <a href="{% url 'payments:create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition">
+                <i data-lucide="hand-coins" class="w-4 h-4"></i>
+                <span>Registrar Pago</span>
+            </a>
+            <a href="{% url 'cashflow:index' %}" class="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                <i data-lucide="arrow-left-right" class="w-4 h-4 text-slate-500"></i>
+                <span>Caja</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Grid (8 Cards highlighting Financial Health) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- 1. Dinero Real Disponible en Caja -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Caja Disponible</span>
+                <span class="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+                    {{ kpis.available_capital|cop }}
+                </div>
+                <div class="flex items-center gap-1.5 mt-1 text-[11px] text-emerald-600 font-medium">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                    <span>Efectivo real disponible</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Capital Actualmente Prestado (Cartera Activa) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Capital Prestado</span>
+                <span class="p-2 rounded-xl bg-blue-50 text-blue-600">
+                    <i data-lucide="banknote" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+                    {{ kpis.lent_capital|cop }}
+                </div>
+                <div class="flex items-center gap-1.5 mt-1 text-[11px] text-blue-600 font-medium">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    <span>En circulación activa</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Capital Pendiente por Recuperar -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Capital por Cobrar</span>
+                <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+                    <i data-lucide="clock" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">
+                    {{ kpis.pending_principal|cop }}
+                </div>
+                <div class="flex items-center gap-1.5 mt-1 text-[11px] text-slate-500 font-medium">
+                    <span>Principal pendiente neto</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Intereses Recaudados Reales (Ganancia Neta) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Intereses Cobrados</span>
+                <span class="p-2 rounded-xl bg-purple-50 text-purple-600">
+                    <i data-lucide="trending-up" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-slate-900 tracking-tight tabular-nums text-purple-950">
+                    {{ kpis.collected_interest|cop }}
+                </div>
+                <div class="flex items-center gap-1.5 mt-1 text-[11px] text-purple-600 font-medium">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>Rendimiento neto recibido</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Intereses Proyectados Pendientes -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Interés Proyectado</span>
+                <span class="p-2 rounded-xl bg-slate-100 text-slate-600">
+                    <i data-lucide="calculator" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-xl font-bold text-slate-900 tabular-nums">
+                    {{ kpis.pending_interest|cop }}
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Ganancia contractual por cobrar</p>
+            </div>
+        </div>
+
+        <!-- 6. Cobros Exigibles Hoy -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cobros de Hoy</span>
+                <span class="p-2 rounded-xl bg-amber-50 text-amber-600">
+                    <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-xl font-bold text-amber-900 tabular-nums">
+                    {{ kpis.today_due_amount|cop }}
+                </div>
+                <p class="text-[11px] text-amber-600 mt-1 font-medium">Programado para hoy</p>
+            </div>
+        </div>
+
+        <!-- 7. Préstamos Activos -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Préstamos Activos</span>
+                <span class="p-2 rounded-xl bg-blue-50 text-blue-600">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-slate-900 tabular-nums">
+                    {{ kpis.active_loans_count }}
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Operaciones en curso</p>
+            </div>
+        </div>
+
+        <!-- 8. Cuotas Vencidas (Mora) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cuotas Vencidas</span>
+                <span class="p-2 rounded-xl bg-rose-50 text-rose-600">
+                    <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                </span>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl font-bold text-rose-600 tabular-nums">
+                    {{ kpis.overdue_installments_count }}
+                </div>
+                <p class="text-[11px] text-rose-600 mt-1 font-medium">En estado de mora</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Financial Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Monthly Collections Chart (2 Columns) -->
+        <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900 tracking-tight">Evolución de Cobranza y Desembolsos</h2>
+                    <p class="text-xs text-slate-400">Comparativa mensual de capital colocado vs. recuperado</p>
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="flex items-center gap-1.5 text-slate-600">
+                        <span class="w-3 h-3 rounded-full bg-blue-600"></span> Desembolsado
+                    </span>
+                    <span class="flex items-center gap-1.5 text-slate-600">
+                        <span class="w-3 h-3 rounded-full bg-emerald-600"></span> Recuperado
+                    </span>
+                </div>
+            </div>
+            <div class="h-64 sm:h-72 w-full">
+                <canvas id="monthlyFlowChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Portfolio Health Distribution (1 Column) -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            <div>
+                <h2 class="text-sm font-bold text-slate-900 tracking-tight">Distribución de Cartera</h2>
+                <p class="text-xs text-slate-400">Estado de riesgo y cumplimiento de clientes</p>
+                <div class="h-52 w-full mt-4 flex items-center justify-center">
+                    <canvas id="portfolioHealthChart"></canvas>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
+                <div>
+                    <span class="block font-bold text-emerald-600">0%</span>
+                    <span class="text-[11px] text-slate-400">Al día</span>
+                </div>
+                <div>
+                    <span class="block font-bold text-amber-600">0%</span>
+                    <span class="text-[11px] text-slate-400">Atraso leve</span>
+                </div>
+                <div>
+                    <span class="block font-bold text-rose-600">0%</span>
+                    <span class="text-[11px] text-slate-400">Mora crítica</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Collections & Recent Transactions -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Próximos Cobros (2 Columns) -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900 tracking-tight">Próximos Vencimientos y Cobros</h2>
+                    <p class="text-xs text-slate-400">Cuotas programadas para cobro en los próximos días</p>
+                </div>
+                <a href="{% url 'loans:installments' %}" class="text-xs font-semibold text-blue-600 hover:text-blue-700">Ver todas &rarr;</a>
+            </div>
+
+            {% if upcoming_installments %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                        <tr>
+                            <th class="py-3 px-4">Cliente</th>
+                            <th class="py-3 px-4">Préstamo</th>
+                            <th class="py-3 px-4">Vencimiento</th>
+                            <th class="py-3 px-4 text-right">Valor Cuota</th>
+                            <th class="py-3 px-4 text-center">Estado</th>
+                            <th class="py-3 px-4 text-right">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in upcoming_installments %}
+                        <tr class="hover:bg-slate-50/50 transition">
+                            <td class="py-3 px-4 font-semibold text-slate-900">{{ item.customer_name }}</td>
+                            <td class="py-3 px-4 text-slate-500">{{ item.loan_code }}</td>
+                            <td class="py-3 px-4 text-slate-600">{{ item.due_date|date:"d/m/Y" }}</td>
+                            <td class="py-3 px-4 text-right font-bold text-slate-900 tabular-nums">{{ item.amount|cop }}</td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
+                                    {{ item.status }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                <a href="{% url 'payments:create' %}" class="text-blue-600 hover:underline font-semibold">Cobrar</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Empty State for Upcoming Installments -->
+            <div class="p-8 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="calendar-check-2" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-800">No hay cuotas pendientes para hoy</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                    Cuando registres tus primeros préstamos, aquí aparecerán las cuotas ordenadas por fecha de vencimiento.
+                </p>
+                <div class="mt-4">
+                    <a href="{% url 'loans:create' %}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-2xs transition">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Crear Primer Préstamo</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Activity Feed (1 Column) -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900 tracking-tight">Actividad Reciente</h2>
+                    <p class="text-xs text-slate-400">Últimos movimientos del sistema</p>
+                </div>
+                <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
+            </div>
+
+            <div class="p-5 flex-1 flex flex-col justify-center">
+                {% if recent_activities %}
+                <ul class="space-y-4">
+                    {% for act in recent_activities %}
+                    <li class="flex items-start gap-3 text-xs">
+                        <span class="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0"></span>
+                        <div class="flex-1">
+                            <p class="text-slate-800 font-medium">{{ act.description }}</p>
+                            <span class="text-[10px] text-slate-400">{{ act.timestamp|timesince }} atrás</span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-6 text-slate-400 text-xs">
+                    <i data-lucide="activity" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+                    <p class="font-medium text-slate-600">Sistema recién inicializado</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Las acciones financieras registradas se auditarán aquí en tiempo real.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Monthly Flow Chart
+        const ctxFlow = document.getElementById('monthlyFlowChart')?.getContext('2d');
+        if (ctxFlow) {
+            new Chart(ctxFlow, {
+                type: 'bar',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    datasets: [
+                        {
+                            label: 'Desembolsos',
+                            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: '#2563EB',
+                            borderRadius: 6,
+                        },
+                        {
+                            label: 'Recaudos',
+                            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: '#16A34A',
+                            borderRadius: 6,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#F1F5F9' },
+                            ticks: {
+                                color: '#64748B',
+                                font: { size: 10 },
+                                callback: (v) => '$' + v.toLocaleString()
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#64748B', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Portfolio Health Donut Chart
+        const ctxHealth = document.getElementById('portfolioHealthChart')?.getContext('2d');
+        if (ctxHealth) {
+            new Chart(ctxHealth, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Al día', 'Atraso leve', 'Mora crítica'],
+                    datasets: [{
+                        data: [100, 0, 0],
+                        backgroundColor: ['#16A34A', '#D97706', '#DC2626'],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

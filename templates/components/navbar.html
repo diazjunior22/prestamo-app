@@ -1,0 +1,133 @@
+<header class="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+    <!-- Left Section: Hamburger & Breadcrumbs -->
+    <div class="flex items-center gap-3 sm:gap-4">
+        <!-- Mobile Hamburger Toggle -->
+        <button @click="sidebarOpen = true" 
+                class="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition focus:outline-none"
+                aria-label="Abrir menú">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Breadcrumbs / Page Title Context -->
+        <div class="flex items-center gap-2 text-sm">
+            <span class="font-semibold text-slate-900 tracking-tight text-base sm:text-lg">
+                {{ page_title|default:"Dashboard" }}
+            </span>
+            <span class="hidden sm:inline-block text-slate-300">/</span>
+            <span class="hidden sm:inline-block text-xs font-medium text-slate-500 uppercase tracking-wider">
+                {{ SYSTEM_NAME }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Right Section: Quick Actions, Notifications & Profile -->
+    <div class="flex items-center gap-2 sm:gap-4">
+        
+        <!-- Quick Action Buttons (Desktop) -->
+        <div class="hidden md:flex items-center gap-2">
+            <!-- Registrar Pago -->
+            <a href="{% url 'payments:create' %}" 
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition shadow-2xs">
+                <i data-lucide="hand-coins" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>Registrar Pago</span>
+            </a>
+
+            <!-- Movimiento de Caja -->
+            <a href="{% url 'cashflow:index' %}" 
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition shadow-2xs">
+                <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Movimiento Caja</span>
+            </a>
+        </div>
+
+        <div class="h-6 w-px bg-slate-200 hidden md:block"></div>
+
+        <!-- Notification Bell Dropdown (Alpine) -->
+        <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+            <button @click="open = !open" 
+                    class="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                    title="Notificaciones">
+                <i data-lucide="bell" class="w-5 h-5"></i>
+                {% if unread_notifications_count > 0 %}
+                <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white"></span>
+                {% endif %}
+            </button>
+
+            <!-- Dropdown panel -->
+            <div x-show="open" 
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50"
+                 x-cloak>
+                <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-900 uppercase tracking-wider">Notificaciones</span>
+                    <a href="{% url 'notifications:list' %}" class="text-[11px] text-blue-600 hover:underline">Ver todas</a>
+                </div>
+                <div class="px-4 py-6 text-center text-xs text-slate-400">
+                    <i data-lucide="check-check" class="w-8 h-8 mx-auto mb-2 text-emerald-500/70"></i>
+                    No tienes alertas pendientes en este momento.
+                </div>
+            </div>
+        </div>
+
+        <!-- User Profile Dropdown (Alpine) -->
+        <div class="relative" x-data="{ userMenuOpen: false }" @click.outside="userMenuOpen = false">
+            <button @click="userMenuOpen = !userMenuOpen" 
+                    class="flex items-center gap-2 p-1 pl-2 pr-2.5 rounded-lg hover:bg-slate-100 transition focus:outline-none">
+                <div class="w-8 h-8 rounded-full bg-[#14243A] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                    {{ user.first_name|default:user.username|slice:":1"|upper }}
+                </div>
+                <span class="hidden md:inline-block text-xs font-medium text-slate-700">
+                    {{ user.first_name|default:user.username }}
+                </span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+
+            <!-- User Menu Dropdown -->
+            <div x-show="userMenuOpen" 
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 scale-95"
+                 class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50"
+                 x-cloak>
+                <div class="px-4 py-2 border-b border-slate-100">
+                    <p class="text-xs font-semibold text-slate-900 truncate">{{ user.get_full_name|default:user.username }}</p>
+                    <p class="text-[11px] text-slate-400 truncate">{{ user.email }}</p>
+                    <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200/50">
+                        {{ user.role }}
+                    </span>
+                </div>
+
+                <a href="{% url 'users:profile' %}" class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition">
+                    <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>
+                    <span>Mi Perfil</span>
+                </a>
+                
+                {% if user.is_staff %}
+                <a href="/admin/" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 transition">
+                    <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
+                    <span>Django Admin</span>
+                </a>
+                {% endif %}
+
+                <div class="my-1 border-t border-slate-100"></div>
+
+                <form method="post" action="{% url 'users:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-600 hover:bg-red-50 transition text-left">
+                        <i data-lucide="log-out" class="w-4 h-4 text-red-500"></i>
+                        <span>Cerrar sesión</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</header>

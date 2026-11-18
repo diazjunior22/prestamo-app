@@ -1,0 +1,47 @@
+{% if messages %}
+<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none p-4">
+    {% for message in messages %}
+    <div x-data="{ show: true }"
+         x-show="show"
+         x-init="setTimeout(() => show = false, 6000)"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-2"
+         class="pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border text-sm backdrop-blur-xs
+                {% if message.tags == 'success' %}
+                    bg-emerald-50/95 border-emerald-200 text-emerald-900
+                {% elif message.tags == 'error' %}
+                    bg-rose-50/95 border-rose-200 text-rose-900
+                {% elif message.tags == 'warning' %}
+                    bg-amber-50/95 border-amber-200 text-amber-900
+                {% else %}
+                    bg-blue-50/95 border-blue-200 text-blue-900
+                {% endif %}"
+         role="alert">
+        
+        <div class="shrink-0 mt-0.5">
+            {% if message.tags == 'success' %}
+                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
+            {% elif message.tags == 'error' %}
+                <i data-lucide="alert-octagon" class="w-5 h-5 text-rose-600"></i>
+            {% elif message.tags == 'warning' %}
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
+            {% else %}
+                <i data-lucide="info" class="w-5 h-5 text-blue-600"></i>
+            {% endif %}
+        </div>
+
+        <div class="flex-1 font-medium text-xs leading-relaxed">
+            {{ message }}
+        </div>
+
+        <button @click="show = false" class="shrink-0 text-slate-400 hover:text-slate-600 p-0.5 rounded transition">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

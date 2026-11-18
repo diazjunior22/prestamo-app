@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Préstamos — {{ SYSTEM_NAME }}{% endblock %}
+{% block page_title %}Cartera de Préstamos{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Préstamos Registrados</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Control de contratos, tasas de interés, plazos y estados de cartera</p>
+        </div>
+        <div>
+            <a href="{% url 'loans:create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-xs transition">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Nuevo Préstamo</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs">
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="receipt" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">Módulo de Préstamos Preparado</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+            En la <strong>Fase 3</strong> implementaremos el motor de cálculo financiero (sistema francés, flat rate), simulación previa al desembolso y confirmación atómica.
+        </p>
+    </div>
+</div>
+{% endblock %}

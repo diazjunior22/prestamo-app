@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Auditoría — {{ SYSTEM_NAME }}{% endblock %}
+{% block page_title %}Trazabilidad y Auditoría{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Registro de Auditoría</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Trazabilidad inmutable de creación, edición, pagos y reversiones</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs">
+        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-sm font-bold text-slate-900">Módulo de Auditoría Preparado</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+            En la <strong>Fase 9</strong> implementaremos el registro detallado con usuario responsable, dirección IP, entidad modificada y valores antes y después de cada cambio.
+        </p>
+    </div>
+</div>
+{% endblock %}

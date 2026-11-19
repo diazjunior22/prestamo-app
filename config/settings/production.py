@@ -6,30 +6,35 @@ import urllib.parse
 
 DEBUG = False
 
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-production-fallback-key-replace-in-env')
 
-ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',') if host.strip()]
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '*').split(',') if host.strip()]
 
-# Database (PostgreSQL required)
+# Database (PostgreSQL if DATABASE_URL provided, SQLite fallback for PythonAnywhere)
 database_url = os.environ.get('DATABASE_URL')
-if not database_url:
-    raise RuntimeError("DATABASE_URL environment variable is required in production.")
-
-url = urllib.parse.urlparse(database_url)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': url.path[1:],
-        'USER': url.username or '',
-        'PASSWORD': url.password or '',
-        'HOST': url.hostname or '',
-        'PORT': url.port or 5432,
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
-        'CONN_MAX_AGE': 600,
+if database_url and database_url.startswith(('postgres://', 'postgresql://')):
+    url = urllib.parse.urlparse(database_url)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:],
+            'USER': url.username or '',
+            'PASSWORD': url.password or '',
+            'HOST': url.hostname or '',
+            'PORT': url.port or 5432,
+            'OPTIONS': {
+                'sslmode': 'require' if 'sslmode=require' in (url.query or '') else 'prefer',
+            },
+            'CONN_MAX_AGE': 600,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # WhiteNoise production storage
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

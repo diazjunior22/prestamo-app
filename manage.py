@@ -5,7 +5,9 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
+    # Default to production if running on Railway/cloud, otherwise local
+    default_settings = 'config.settings.production' if (os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('PORT') or os.getenv('DATABASE_URL')) else 'config.settings.local'
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', default_settings)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

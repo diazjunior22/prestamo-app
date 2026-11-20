@@ -1,26 +1,180 @@
 {% extends 'base.html' %}
 
-{% block title %}Reportes — {{ SYSTEM_NAME }}{% endblock %}
-{% block page_title %}Informes Financieros{% endblock %}
+{% block title %}Reportes y Copias de Seguridad — {{ SYSTEM_NAME }}{% endblock %}
+{% block page_title %}Informes Financieros y Respaldo{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ showRestoreModal: false }">
+
+    <!-- Header Card -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div>
-            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Reportes Financieros y Exportación</h1>
-            <p class="text-xs text-slate-400 mt-0.5">Generación de estados de cuenta, reportes de cartera y recaudos en PDF, Excel y CSV</p>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Reportes y Respaldo de Base de Datos</h1>
+            <p class="text-xs text-slate-400 mt-0.5">Gestión de copias de seguridad, prevención de pérdida de datos y exportación de información</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'reports:backup_export' %}" 
+               class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition"
+               title="Descarga una copia completa de toda la base de datos a tu computadora">
+                <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                <span>Descargar Backup Ahora</span>
+            </a>
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs">
-        <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto mb-3">
-            <i data-lucide="file-bar-chart" class="w-6 h-6"></i>
+    <!-- Live Database Metrics (4 KPI Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Clientes Registrados</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2">{{ total_customers }}</div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Prestatarios en base de datos</p>
         </div>
-        <h3 class="text-sm font-bold text-slate-900">Módulo de Reportes Preparado</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
-            En la <strong>Fase 8</strong> implementaremos los filtros avanzados por rangos de fechas, clientes y exportación limpia a formatos Excel y PDF.
-        </p>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Préstamos Totales</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2">{{ total_loans }}</div>
+            <p class="text-[11px] text-purple-600 font-medium mt-0.5">{{ active_loans }} préstamos activos o en mora</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Recibos de Pago</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <i data-lucide="receipt" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2">{{ total_payments }}</div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Recaudos procesados</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Movimientos en Caja</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-2">{{ total_movements }}</div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Asientos contables auditados</p>
+        </div>
     </div>
+
+    <!-- Disaster Recovery & Backup Panel -->
+    <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/80 shadow-2xs space-y-6">
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h2 class="text-sm font-bold text-slate-900">Protección y Respaldo Continuo (Disaster Recovery)</h2>
+                <p class="text-xs text-slate-400">Tus datos nunca se pierden, pase lo que pase con el servidor en la nube</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Action 1: Export Full Backup -->
+            <div class="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200/70 space-y-3">
+                <div class="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                    <i data-lucide="download" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Exportar Copia de Seguridad Offline</span>
+                </div>
+                <p class="text-xs text-emerald-800/90 leading-relaxed">
+                    Descarga un archivo <code>.json</code> seguro con todos tus clientes, créditos, cuotas, cobros y movimientos de caja. Guárdalo en tu computadora, Google Drive o memoria USB.
+                </p>
+                <div class="pt-2">
+                    <a href="{% url 'reports:backup_export' %}" 
+                       class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs transition">
+                        <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                        <span>Descargar Copia Completa (.json)</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Action 2: Restore from Backup -->
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div class="flex items-center gap-2 text-slate-900 font-bold text-xs">
+                    <i data-lucide="upload" class="w-4 h-4 text-primary-600"></i>
+                    <span>Restaurar Base de Datos desde Respaldo</span>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Si cambias de servidor o necesitas restaurar tu información anterior, sube tu archivo <code>backup_prestamos.json</code> para restablecer todos los registros en segundos.
+                </p>
+                <div class="pt-2">
+                    <button type="button" @click="showRestoreModal = true"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition shadow-2xs">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4 text-slate-600"></i>
+                        <span>Subir y Restaurar Respaldo</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explanatory Safety Notice -->
+        <div class="p-4 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs space-y-2">
+            <div class="flex items-center gap-2 font-bold text-blue-800">
+                <i data-lucide="info" class="w-4 h-4 text-blue-600"></i>
+                <span>¿Cómo garantiza Railway que la base de datos no se borre?</span>
+            </div>
+            <ul class="list-disc pl-5 space-y-1.5 text-[11px] text-blue-800 leading-relaxed">
+                <li><strong>Disco Persistente (Volume):</strong> Railway guarda la base de datos Postgres en un volumen de almacenamiento independiente. Si el servidor se apaga, se reinicia o se actualiza, la información permanece intacta.</li>
+                <li><strong>Snapshots en Railway:</strong> En el panel de Railway, dentro del servicio de Postgres, pestaña <em>"Backups"</em>, Railway realiza copias de seguridad periódicas de la base de datos.</li>
+                <li><strong>Respaldo Independiente (Recomendado):</strong> Descarga el archivo <code>.json</code> semanalmente con el botón verde. Si alguna vez decides cambiar de proveedor en la nube, tendrás toda tu cartera contigo.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Restore Modal -->
+    <div x-show="showRestoreModal" x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm"
+         @click.away="showRestoreModal = false">
+        <div class="relative w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2 text-rose-600 font-bold text-sm">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    <span>Restaurar Copia de Seguridad</span>
+                </div>
+                <button type="button" @click="showRestoreModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                Esta acción cargará los registros del archivo JSON en la base de datos. Si un registro ya existe, actualizará sus datos; los nuevos se crearán automáticamente.
+            </p>
+
+            <form method="post" action="{% url 'reports:backup_restore' %}" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Seleccionar archivo de respaldo (.json)
+                    </label>
+                    <input type="file" name="backup_file" accept=".json,application/json" required
+                           class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" @click="showRestoreModal = false" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            onclick="return confirm('¿Confirmas que deseas restaurar este archivo de copia de seguridad?');"
+                            class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs">
+                        Iniciar Restauración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
-

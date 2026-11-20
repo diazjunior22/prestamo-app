@@ -72,3 +72,4 @@ class BackupAndReportsTestCase(TestCase):
         res_restore = self.client.post(reverse('reports:backup_restore'), {'backup_file': backup_file})
         self.assertEqual(res_restore.status_code, 302)
         self.assertRedirects(res_restore, reverse('reports:list'))
+

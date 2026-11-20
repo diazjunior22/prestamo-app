@@ -265,6 +265,14 @@
                             {% endif %}
                         </td>
                         <td class="py-3 px-4 text-right">
+                            {% if p.voucher_image %}
+                            <a href="{{ p.voucher_image.url }}" target="_blank"
+                                class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 p-1 rounded-lg hover:bg-blue-50 transition mr-1"
+                                title="Ver comprobante adjunto">
+                                <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                                <span>Foto</span>
+                            </a>
+                            {% endif %}
                             <a href="{% url 'payments:receipt_pdf' p.id %}" target="_blank"
                                 class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-primary-600 p-1 rounded-lg hover:bg-slate-100 transition">
                                 <i data-lucide="printer" class="w-3.5 h-3.5"></i>
@@ -283,6 +291,46 @@
             </table>
         </div>
     </div>
+
+    <!-- Disbursement Voucher (if attached) -->
+    {% if loan.disbursement_voucher %}
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3" x-data="{ showVoucherModal: false }">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="image" class="w-4 h-4 text-blue-600"></i>
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Comprobante de Desembolso</h3>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="{{ loan.disbursement_voucher.url }}" target="_blank" download class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-blue-600 transition">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>Descargar</span>
+                </a>
+                <button type="button" @click="showVoucherModal = true" class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition">
+                    <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                    <span>Ver Grande</span>
+                </button>
+            </div>
+        </div>
+        <div class="flex justify-center bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+            <img src="{{ loan.disbursement_voucher.url }}" alt="Comprobante de desembolso {{ loan.loan_code }}" 
+                 class="max-h-64 object-contain rounded-lg cursor-pointer hover:opacity-95 transition shadow-2xs" 
+                 @click="showVoucherModal = true">
+        </div>
+
+        <!-- Fullscreen Image Modal -->
+        <div x-show="showVoucherModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm" @click.away="showVoucherModal = false">
+            <div class="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl p-4 overflow-hidden flex flex-col items-center shadow-2xl">
+                <div class="w-full flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
+                    <span class="text-xs font-bold text-slate-800">Comprobante de Desembolso — {{ loan.loan_code }}</span>
+                    <button type="button" @click="showVoucherModal = false" class="text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <img src="{{ loan.disbursement_voucher.url }}" class="max-h-[75vh] object-contain rounded-lg">
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Contract Notes -->
     {% if loan.notes %}

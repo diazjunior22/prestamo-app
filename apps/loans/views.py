@@ -72,7 +72,7 @@ def loan_create_view(request):
     customer_id = request.GET.get('customer_id')
 
     if request.method == 'POST':
-        form = LoanForm(request.POST)
+        form = LoanForm(request.POST, request.FILES)
         if form.is_valid():
             try:
                 loan = LoanCreator.create_loan(
@@ -86,6 +86,7 @@ def loan_create_view(request):
                     disbursement_date=form.cleaned_data['disbursement_date'],
                     first_payment_date=form.cleaned_data['first_payment_date'],
                     notes=form.cleaned_data.get('notes', ''),
+                    disbursement_voucher=form.cleaned_data.get('disbursement_voucher'),
                     user=request.user
                 )
                 messages.success(request, f"Préstamo {loan.loan_code} creado y desembolsado exitosamente con {loan.total_installments} cuotas.")

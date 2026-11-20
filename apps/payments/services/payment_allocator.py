@@ -15,6 +15,7 @@ def allocate_payment(
     reference_number: str = '',
     notes: str = '',
     user=None,
+    voucher_image=None,
     auto_generate_pdf: bool = True
 ) -> Payment:
     """
@@ -61,6 +62,7 @@ def allocate_payment(
             payment_date=payment_date,
             payment_method=payment_method,
             reference_number=reference_number.strip() if reference_number else '',
+            voucher_image=voucher_image,
             status=Payment.Status.COMPLETED,
             notes=notes.strip() if notes else '',
             created_by=user

@@ -124,6 +124,12 @@ class Loan(BaseModel):
         null=True,
         verbose_name="Observaciones del préstamo"
     )
+    disbursement_voucher = models.ImageField(
+        upload_to='vouchers/loans/%Y/%m/',
+        blank=True,
+        null=True,
+        verbose_name="Comprobante de desembolso (Imagen)"
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

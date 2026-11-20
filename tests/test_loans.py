@@ -1,5 +1,8 @@
 import datetime
+import io
 from decimal import Decimal
+from PIL import Image
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -433,5 +436,44 @@ class LoanCreationAndViewsTestCase(TestCase):
         self.assertFalse(Loan.objects.filter(pk=loan_id).exists())
         self.assertEqual(Installment.objects.filter(loan_id=loan_id).count(), 0)
         self.assertFalse(CashMovement.objects.filter(loan_reference=loan_code).exists())
+
+    def test_loan_create_view_with_disbursement_voucher(self):
+        buf = io.BytesIO()
+        img = Image.new('RGB', (100, 100), color='blue')
+        img.save(buf, format='PNG')
+        png_bytes = buf.getvalue()
+
+        voucher = SimpleUploadedFile(
+            name='desembolso_voucher.png',
+            content=png_bytes,
+            content_type='image/png'
+        )
+
+        post_data = {
+            'customer': self.customer.pk,
+            'principal': '1500000',
+            'interest_rate': '10',
+            'interest_type': 'FLAT',
+            'payment_frequency': 'MONTHLY',
+            'total_installments': '3',
+            'disbursement_date': datetime.date.today().strftime('%Y-%m-%d'),
+            'first_payment_date': (datetime.date.today() + datetime.timedelta(days=30)).strftime('%Y-%m-%d'),
+            'disbursement_voucher': voucher,
+            'notes': 'Desembolso con comprobante adjunto'
+        }
+
+        res = self.client.post(reverse('loans:create'), data=post_data)
+        self.assertEqual(res.status_code, 302)
+
+        loan = Loan.objects.filter(customer=self.customer, notes='Desembolso con comprobante adjunto').first()
+        self.assertIsNotNone(loan)
+        self.assertTrue(bool(loan.disbursement_voucher))
+        self.assertIn('desembolso_voucher', loan.disbursement_voucher.name)
+
+        # Check detail view
+        detail_res = self.client.get(reverse('loans:detail', kwargs={'pk': loan.pk}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, loan.disbursement_voucher.url)
+        self.assertContains(detail_res, "Comprobante de Desembolso")
 
 

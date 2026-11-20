@@ -42,6 +42,7 @@ class LoanCreator:
         first_payment_date,
         interest_rate_period: str = 'MONTHLY',
         notes: str = "",
+        disbursement_voucher=None,
         user=None
     ) -> Loan:
         """
@@ -78,6 +79,7 @@ class LoanCreator:
                 balance=schedule['total_amount'],
                 status=Loan.Status.ACTIVE,
                 notes=notes,
+                disbursement_voucher=disbursement_voucher,
                 created_by=user
             )
 

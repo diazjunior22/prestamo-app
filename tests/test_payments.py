@@ -1,6 +1,9 @@
 import datetime
 from decimal import Decimal
 from django.contrib.auth import get_user_model
+import io
+from PIL import Image
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.exceptions import ValidationError
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -324,5 +327,41 @@ class PaymentModuleTestCase(TestCase):
         self.loan.refresh_from_db()
         self.assertEqual(self.loan.balance, balance_after_payment + Decimal('440000.00'))
         self.assertFalse(CashMovement.objects.filter(payment_reference=receipt_num).exists())
+
+    def test_payment_voucher_image_upload_and_display(self):
+        buf = io.BytesIO()
+        img = Image.new('RGB', (100, 100), color='green')
+        img.save(buf, format='PNG')
+        png_bytes = buf.getvalue()
+
+        voucher = SimpleUploadedFile(
+            name='comprobante_nequi_test.png',
+            content=png_bytes,
+            content_type='image/png'
+        )
+
+        post_data = {
+            'loan': self.loan.id,
+            'amount': '440000.00',
+            'payment_date': timezone.localdate().strftime('%Y-%m-%d'),
+            'payment_method': 'NEQUI',
+            'reference_number': 'M987654321',
+            'voucher_image': voucher,
+            'notes': 'Pago con comprobante Nequi subido'
+        }
+
+        response = self.client.post(reverse('payments:create'), data=post_data)
+        self.assertEqual(response.status_code, 302)
+
+        payment = Payment.objects.filter(reference_number='M987654321').first()
+        self.assertIsNotNone(payment)
+        self.assertTrue(bool(payment.voucher_image))
+        self.assertIn('comprobante_nequi_test', payment.voucher_image.name)
+
+        # Check detail view renders the voucher image
+        detail_res = self.client.get(reverse('payments:detail', kwargs={'payment_id': payment.id}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, payment.voucher_image.url)
+        self.assertContains(detail_res, "Comprobante de Pago Adjunto")
 
 

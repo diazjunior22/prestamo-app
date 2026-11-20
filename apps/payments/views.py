@@ -114,17 +114,23 @@ def payment_create_view(request):
                 status__in=[Loan.Status.ACTIVE, Loan.Status.OVERDUE]
             )
             initial_data['loan'] = selected_loan.id
+            next_inst = selected_loan.installments.filter(
+                status__in=[Installment.Status.PENDING, Installment.Status.PARTIAL, Installment.Status.OVERDUE]
+            ).order_by('installment_number').first()
+            if next_inst:
+                initial_data['amount'] = next_inst.balance
         except (Loan.DoesNotExist, ValueError):
             pass
 
     if request.method == 'POST':
-        form = PaymentForm(request.POST)
+        form = PaymentForm(request.POST, request.FILES)
         if form.is_valid():
             loan = form.cleaned_data['loan']
             amount = form.cleaned_data['amount']
             payment_date = form.cleaned_data['payment_date']
             payment_method = form.cleaned_data['payment_method']
             reference_number = form.cleaned_data['reference_number']
+            voucher_image = form.cleaned_data.get('voucher_image')
             notes = form.cleaned_data['notes']
 
             try:
@@ -135,7 +141,8 @@ def payment_create_view(request):
                     payment_method=payment_method,
                     reference_number=reference_number,
                     notes=notes,
-                    user=request.user
+                    user=request.user,
+                    voucher_image=voucher_image
                 )
                 # Auto-dispatch receipt via email if customer has email configured
                 try:

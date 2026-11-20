@@ -89,6 +89,12 @@ class Payment(BaseModel):
         null=True,
         verbose_name="Comprobante PDF"
     )
+    voucher_image = models.ImageField(
+        upload_to='vouchers/payments/%Y/%m/',
+        blank=True,
+        null=True,
+        verbose_name="Comprobante de pago (Imagen)"
+    )
 
     # Reversal tracking audit fields
     reversal_reason = models.TextField(

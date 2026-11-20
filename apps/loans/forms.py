@@ -35,6 +35,14 @@ class LoanForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': SELECT_CLASSES}),
         label="Período de la Tasa"
     )
+    disbursement_voucher = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 transition shadow-2xs',
+            'accept': 'image/*'
+        }),
+        label="Comprobante de desembolso (Opcional)"
+    )
 
     class Meta:
         model = Loan
@@ -48,6 +56,7 @@ class LoanForm(forms.ModelForm):
             'total_installments',
             'disbursement_date',
             'first_payment_date',
+            'disbursement_voucher',
             'notes',
         ]
         labels = {
@@ -59,6 +68,7 @@ class LoanForm(forms.ModelForm):
             'total_installments': 'Cantidad de cuotas',
             'disbursement_date': 'Fecha de Desembolso',
             'first_payment_date': 'Fecha de Primer Vencimiento',
+            'disbursement_voucher': 'Comprobante de desembolso (Foto o Captura)',
             'notes': 'Observaciones / Garantías',
         }
         widgets = {

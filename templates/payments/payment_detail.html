@@ -186,6 +186,46 @@
             </div>
         </div>
 
+        <!-- Voucher Image Section -->
+        {% if payment.voucher_image %}
+        <div class="p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-3" x-data="{ showImgModal: false }">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="image" class="w-4 h-4 text-blue-600"></i>
+                    <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Comprobante de Pago Adjunto</h4>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{{ payment.voucher_image.url }}" target="_blank" download class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-blue-600 transition">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Descargar</span>
+                    </a>
+                    <button type="button" @click="showImgModal = true" class="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition">
+                        <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                        <span>Ver Grande</span>
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-center bg-white p-3 rounded-xl border border-slate-200/80">
+                <img src="{{ payment.voucher_image.url }}" alt="Comprobante {{ payment.receipt_number }}" 
+                     class="max-h-72 object-contain rounded-lg cursor-pointer hover:opacity-95 transition shadow-2xs" 
+                     @click="showImgModal = true">
+            </div>
+
+            <!-- Fullscreen Image Modal -->
+            <div x-show="showImgModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm" @click.away="showImgModal = false">
+                <div class="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl p-4 overflow-hidden flex flex-col items-center shadow-2xl">
+                    <div class="w-full flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
+                        <span class="text-xs font-bold text-slate-800">Comprobante de Pago — Recibo {{ payment.receipt_number }}</span>
+                        <button type="button" @click="showImgModal = false" class="text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <img src="{{ payment.voucher_image.url }}" class="max-h-[75vh] object-contain rounded-lg">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {% if payment.notes %}
         <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/70 text-xs">
             <span class="font-bold text-slate-700 block mb-0.5">Observaciones:</span>

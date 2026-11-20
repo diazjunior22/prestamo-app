@@ -56,6 +56,14 @@
 </div>
 <script>
     if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+    {% if next_installment %}
+    (function() {
+        const amtInput = document.getElementById('id_amount');
+        if (amtInput && (!amtInput.value || amtInput.value === '' || amtInput.value === '0' || amtInput.value === '0.00')) {
+            amtInput.value = '{{ next_installment.balance|stringformat:".2f" }}';
+        }
+    })();
+    {% endif %}
 </script>
 {% endif %}
 

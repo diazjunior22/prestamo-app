@@ -18,8 +18,13 @@ class PaymentForm(forms.ModelForm):
 
     class Meta:
         model = Payment
-        fields = ['loan', 'amount', 'payment_date', 'payment_method', 'reference_number', 'notes']
+        fields = ['loan', 'amount', 'payment_date', 'payment_method', 'reference_number', 'voucher_image', 'notes']
         widgets = {
+            'voucher_image': forms.FileInput(attrs={
+                'class': 'hidden',
+                'id': 'id_voucher_image',
+                'accept': 'image/*,application/pdf'
+            }),
             'amount': forms.NumberInput(attrs={
                 'class': 'w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white transition',
                 'placeholder': '0.00',

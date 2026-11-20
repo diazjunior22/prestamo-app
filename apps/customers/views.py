@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction
@@ -210,4 +211,43 @@ def customer_delete_view(request, pk):
         'pending_balance': pending_balance,
     }
     return render(request, 'customers/customer_confirm_delete.html', context)
+
+
+@login_required
+def customer_search_api_view(request):
+    """
+    Fast JSON search endpoint for customer autocomplete in loan and payment forms.
+    Searches across first name, last name, full name, document number, and phone number.
+    Returns maximum 15 active customers.
+    """
+    q = request.GET.get('q', '').strip()
+    if not q or len(q) < 1:
+        customers = Customer.objects.filter(status=Customer.Status.ACTIVE).order_by('-created_at')[:10]
+    else:
+        customers = Customer.objects.filter(status=Customer.Status.ACTIVE).annotate(
+            full_name_db=Concat('first_name', Value(' '), 'last_name')
+        ).filter(
+            Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) |
+            Q(full_name_db__icontains=q) |
+            Q(document_number__icontains=q) |
+            Q(phone__icontains=q)
+        ).order_by('first_name', 'last_name')[:15]
+
+    data = [
+        {
+            'id': str(c.id),
+            'name': c.full_name,
+            'first_name': c.first_name,
+            'last_name': c.last_name,
+            'document': f"{c.get_document_type_display()}: {c.document_number}",
+            'document_number': c.document_number,
+            'phone': c.phone or c.whatsapp or 'Sin teléfono',
+            'city': c.city or '',
+            'initials': f"{c.first_name[:1]}{c.last_name[:1]}".upper()
+        }
+        for c in customers
+    ]
+    return JsonResponse({'results': data})
+
 

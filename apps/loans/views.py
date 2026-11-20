@@ -69,7 +69,13 @@ def loan_create_view(request):
     Integrates live HTMX simulation before confirmation and executes
     an atomic transaction upon submission.
     """
-    customer_id = request.GET.get('customer_id')
+    customer_id = request.GET.get('customer_id') or (request.POST.get('customer') if request.method == 'POST' else None)
+    selected_customer = None
+    if customer_id:
+        try:
+            selected_customer = Customer.objects.get(id=customer_id)
+        except (Customer.DoesNotExist, ValueError):
+            pass
 
     if request.method == 'POST':
         form = LoanForm(request.POST, request.FILES)
@@ -100,6 +106,7 @@ def loan_create_view(request):
 
     return render(request, 'loans/loan_form.html', {
         'form': form,
+        'selected_customer': selected_customer,
         'page_title': 'Registrar Nuevo Préstamo',
         'active_nav': 'loans',
     })

@@ -24,8 +24,7 @@ TEXTAREA_CLASSES = (
 class LoanForm(forms.ModelForm):
     customer = forms.ModelChoiceField(
         queryset=Customer.objects.filter(status=Customer.Status.ACTIVE),
-        widget=forms.Select(attrs={'class': SELECT_CLASSES}),
-        empty_label="-- Selecciona un prestatario --",
+        widget=forms.HiddenInput(),
         label="Cliente Prestatario"
     )
     interest_rate_period = forms.ChoiceField(

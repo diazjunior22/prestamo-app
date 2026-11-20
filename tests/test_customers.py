@@ -190,4 +190,24 @@ class CustomerModuleTestCase(TestCase):
         self.assertRedirects(res_post, reverse('customers:list'))
         self.assertFalse(Customer.objects.filter(pk=c_id).exists())
 
+    def test_customer_search_api_view(self):
+        # 1. Search with empty query -> returns active customers
+        res = self.client.get(reverse('customers:search_api'))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn('results', data)
+        self.assertTrue(len(data['results']) > 0)
+
+        # 2. Search by name
+        res_name = self.client.get(reverse('customers:search_api') + '?q=Andrés')
+        self.assertEqual(res_name.status_code, 200)
+        results = res_name.json()['results']
+        self.assertTrue(any('Andrés' in r['name'] for r in results))
+
+        # 3. Search by phone
+        res_phone = self.client.get(reverse('customers:search_api') + '?q=310123')
+        self.assertEqual(res_phone.status_code, 200)
+        self.assertTrue(len(res_phone.json()['results']) > 0)
+
+
 

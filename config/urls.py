@@ -2,9 +2,9 @@
 Root URL configuration for LoanManager.
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.views.static import serve
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,8 +19,6 @@ urlpatterns = [
     path('notificaciones/', include('apps.notifications.urls', namespace='notifications')),
     path('reportes/', include('apps.reports.urls', namespace='reports')),
     path('auditoria/', include('apps.audit.urls', namespace='audit')),
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

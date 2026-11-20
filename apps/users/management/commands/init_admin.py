@@ -8,11 +8,11 @@ class Command(BaseCommand):
     help = 'Creates or verifies the initial administrator superuser for LoanManager'
 
     def add_arguments(self, parser):
-        parser.add_argument('--email', type=str, default=os.getenv('ADMIN_EMAIL', 'admin@loanmanager.local'))
-        parser.add_argument('--username', type=str, default='admin')
-        parser.add_argument('--password', type=str, default='AdminLoan2026!')
-        parser.add_argument('--first-name', type=str, default='Administrador')
-        parser.add_argument('--last-name', type=str, default='Principal')
+        parser.add_argument('--email', type=str, default=os.getenv('ADMIN_EMAIL', 'diazjunior354@gmail.com'))
+        parser.add_argument('--username', type=str, default='diazjunior')
+        parser.add_argument('--password', type=str, default=os.getenv('ADMIN_PASSWORD', 'diazjunior22'))
+        parser.add_argument('--first-name', type=str, default='Junior')
+        parser.add_argument('--last-name', type=str, default='Diaz')
 
     def handle(self, *args, **options):
         email = options['email']
@@ -21,8 +21,15 @@ class Command(BaseCommand):
         first_name = options['first_name']
         last_name = options['last_name']
 
-        if User.objects.filter(email=email).exists():
-            self.stdout.write(self.style.WARNING(f"El usuario con email '{email}' ya existe."))
+        user = User.objects.filter(email=email).first()
+        if user:
+            user.set_password(password)
+            user.role = User.Role.ADMIN
+            user.is_superuser = True
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+            self.stdout.write(self.style.SUCCESS(f"Usuario '{email}' actualizado exitosamente con rol ADMIN."))
             return
 
         user = User.objects.create_superuser(

@@ -9,6 +9,14 @@ DEBUG = False
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-production-fallback-key-replace-in-env')
 
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '*').split(',') if host.strip()]
+if '.pythonanywhere.com' not in ALLOWED_HOSTS and '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.pythonanywhere.com')
+
+# CSRF Trusted Origins (required for form submissions on PythonAnywhere HTTPS)
+CSRF_TRUSTED_ORIGINS = ['https://*.pythonanywhere.com']
+for host in ALLOWED_HOSTS:
+    if host not in ('*', 'localhost', '127.0.0.1', '.pythonanywhere.com'):
+        CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
 
 # Database (PostgreSQL if DATABASE_URL provided, SQLite fallback for PythonAnywhere)
 database_url = os.environ.get('DATABASE_URL')
@@ -40,7 +48,8 @@ else:
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Security settings
-SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
